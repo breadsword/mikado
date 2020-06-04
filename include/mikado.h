@@ -3,6 +3,9 @@
 
 #include <gsl-lite/gsl-lite.hpp>
 
+#include <packets.h>
+#include <utils.h>
+
 namespace mikado {
 
 namespace gsl = ::gsl_lite; // convenience alias
@@ -30,28 +33,12 @@ mikado<Connection>::mikado(Connection& _conn) : conn{_conn}, m_connected{false}
 
 // TODO: use a toSpan() function of a Connect Packet to fill the buffer
 // conn.send(connectPacket().toSpan(buffer))
-gsl::span<unsigned char>  build_connect_packet(gsl::span<unsigned char> target_buffer);
-
-class Packet;
-
-class Packet
-{
-public:
-    virtual ~Packet();
-
-    virtual bool isValid() {return false;}
-    virtual gsl::span<unsigned char> toSpan(gsl::span<unsigned char>) = 0;
-
-    static std::unique_ptr<Packet> parse(gsl::span<unsigned char> data);
-private:
-    virtual bool fromSpan(gsl::span<unsigned char>) = 0;
-};
-
+gsl::span<byte>  build_connect_packet(gsl::span<byte> target_buffer);
 
 template<class Connection>
 void mikado<Connection>::connect()
 {
-    std::array<unsigned char, 256> io_buffer {0};
+    std::array<byte, 256> io_buffer {0};
     auto fixed_header = gsl::make_span(io_buffer.begin(), 2);
     auto remaining_buffer = gsl::make_span(&io_buffer[2], io_buffer.end());
 
@@ -64,7 +51,7 @@ void mikado<Connection>::connect()
     {
         return;
     }
-    const auto remaining_len = io_buffer[1];
+    const auto remaining_len = ::gsl::to_uchar(io_buffer[1]);
 
     conn.recv(remaining_buffer.first(remaining_len));
 
@@ -78,12 +65,6 @@ void mikado<Connection>::connect()
         m_connected = true;
     }
 }
-
-namespace packet_type
-{
-constexpr uint8_t CONNECT = 1 << 4;
-
-}; // namespace packet_type
 
 }; // namespace mikado
 

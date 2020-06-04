@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE ( mikado_connect )
     // check content of connect packet (??)
     const std::vector<unsigned char> ref = {
         '>',
-        packet_type::CONNECT, 18,
+        packet_type::connect, 18,
         0, 4, // string length
         'M', 'Q', 'T', 'T',  // string
         5, // protocol version

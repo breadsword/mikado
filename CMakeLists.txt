@@ -6,7 +6,10 @@ SET(CMAKE_CXX_STANDARD 14)
 
 LIST(APPEND LIB_SOURCES
     include/mikado.h
+    include/packets.h
+    include/utils.h
     src/mikado.cpp
+    src/packets.cpp
     )
 
 # Configure gsl-lite
@@ -41,6 +44,7 @@ target_compile_definitions( ${LIBRARY_NAME} PUBLIC gsl_CONFIG_DEFAULTS_VERSION=1
 
 LIST(APPEND TEST_SOURCES
     test/test_mikado.cpp
+    test/test_vbi.cpp
     )
 
 LIST(APPEND EXAMPLE_SOURCES
