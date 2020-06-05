@@ -10,6 +10,7 @@ LIST(APPEND LIB_SOURCES
     include/utils.h
     src/mikado.cpp
     src/packets.cpp
+    src/utils.cpp
     )
 
 # Configure gsl-lite
