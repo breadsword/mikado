@@ -4,31 +4,62 @@
 
 #include "utils.h"
 
-gsl::span<mikado::byte> mikado::connect::Packet::toSpan(gsl::span<mikado::byte> buffer)
+mikado::connect::Packet::~Packet()
+{
+
+}
+
+constexpr mikado::byte mikado::connect::Packet::protocol_name[];
+
+gsl::span<mikado::byte> mikado::connect::Packet::to_span(gsl::span<mikado::byte> buffer)
 {
     // fixed header
     buffer[0] = type;
 
+    // beginning of buffer (for debugging)
+    const auto start = buffer.begin();
     // beginning of variable header
-    auto head = buffer.begin() + 2;
+    const auto head = buffer.begin() + 2;
 
     // TODO: check that buffer is large enough
-    // constexpr static auto p_span = gsl::make_span(protocol_name_ver);
-    auto it = std::copy(std::begin(protocol_name_ver), std::end(protocol_name_ver), head);
+
+    auto it = head;
+    *it++ = msb(sizeof(protocol_name));
+    *it++ = lsb(sizeof(protocol_name));
+    it = std::copy(std::begin(protocol_name), std::end(protocol_name), it);
+    *it++ = mqtt_protocol_version;
 
     *it++ = flags;
 
     *it++ = msb(keep_alive);
     *it++ = lsb(keep_alive);
 
-    *it++ = byte{0}; // Property length
+    constexpr uint16_t property_length = 0;
+    it = std::copy(vbi(property_length).begin(), vbi::end(), it);
 
     // Payload
+    it = std::copy(vbi(clientID.length()).begin(), vbi::end(), it);
     it = std::copy(clientID.begin(), clientID.end(), it);
 
     // calculate length
     const auto remaining_length = it-head;
-    // it = std::copy(vbi_encoder(remaining_length), nullptr, it);
+    //FIXME: this will overwrite stuff if we have more than one digit
+    std::copy(vbi(remaining_length).begin(), vbi::end(), start+1);
 
     return {buffer.begin(), it};
+}
+
+bool mikado::connect::Packet::from_span(gsl::span<mikado::byte>)
+{
+    return false;
+}
+
+mikado::Packet::~Packet()
+{
+
+}
+
+bool mikado::Packet::is_valid()
+{
+    return false;
 }

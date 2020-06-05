@@ -12,16 +12,13 @@ class Packet
 public:
     virtual ~Packet();
 
-    virtual bool isValid()
-    {
-        return false;
-    }
-    virtual gsl::span<byte> toSpan(gsl::span<byte>) = 0;
+    virtual bool is_valid();
+    virtual gsl::span<byte> to_span(gsl::span<byte>) = 0;
 
     static std::unique_ptr<Packet> parse(gsl::span<byte> data);
 
-private:
-    virtual bool fromSpan(gsl::span<byte>) = 0;
+protected:
+    virtual bool from_span(gsl::span<byte>) = 0;
 };
 
 namespace packet_type
@@ -53,18 +50,26 @@ constexpr byte clean_start  {1 << 1};
 
 struct Packet : public ::mikado::Packet
 {
+    virtual ~Packet();
+    Packet(const std::string _clientID="",
+           const uint16_t _keep_alive = 0,
+           const byte _flags = connect::flags::clean_start) : flags{_flags}, keep_alive{_keep_alive}, clientID{_clientID}
+    {}
+
     constexpr static auto type = packet_type::connect;
 
-    constexpr static byte protocol_name_ver[] =
-    {0, 4, 'M', 'Q', 'T', 'T', mqtt_protocol_version};
+//    constexpr static byte protocol_name[] =
+//    {0, 4, 'M', 'Q', 'T', 'T'};
 
-    byte flags = connect::flags::clean_start;
-    uint16_t keep_alive = 0;
+    constexpr static byte protocol_name[] {'M', 'Q', 'T', 'T'};
 
-    const std::string clientID = "";
+    byte flags;
+    uint16_t keep_alive;
+    const std::string clientID;
 
-    virtual gsl::span<byte> toSpan(gsl::span<byte>) override;
-
+    virtual gsl::span<byte> to_span(gsl::span<byte>) override;
+protected:
+    virtual bool from_span(gsl::span<byte>) override;
 };
 
 } // namespace connect

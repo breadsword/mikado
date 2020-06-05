@@ -31,10 +31,6 @@ mikado<Connection>::mikado(Connection& _conn) : conn{_conn}, m_connected{false}
 
 }
 
-// TODO: use a toSpan() function of a Connect Packet to fill the buffer
-// conn.send(connectPacket().toSpan(buffer))
-gsl::span<byte>  build_connect_packet(gsl::span<byte> target_buffer);
-
 template<class Connection>
 void mikado<Connection>::connect()
 {
@@ -42,7 +38,7 @@ void mikado<Connection>::connect()
     auto fixed_header = gsl::make_span(io_buffer.begin(), 2);
     auto remaining_buffer = gsl::make_span(&io_buffer[2], io_buffer.end());
 
-    conn.send(build_connect_packet(io_buffer));
+    conn.send(connect::Packet{"client"}.to_span(io_buffer));
 
     // TODO: how many bytes?
     // idea: get all (for now); better: get 2 bytes, then remaining length
@@ -55,11 +51,11 @@ void mikado<Connection>::connect()
 
     conn.recv(remaining_buffer.first(remaining_len));
 
-    const auto p = Packet::parse(io_buffer);
+    const auto connack = Packet::parse(io_buffer);
     // output can be:
     // - data corrupt
     // - packet complete, we can pick it up somewhere
-    if (p->isValid())
+    if (connack->is_valid())
     {
         // actually check content of parsed packet
         m_connected = true;
