@@ -85,12 +85,12 @@ public:
         bool isEnd;
     };
 
-    vbi_range<vbi_t>(const typename encoding_iterator::value_type val) : it(val)
+    vbi_range<vbi_t>(const typename encoding_iterator::value_type val) : value{val}
     {}
 
     encoding_iterator begin() const
     {
-        return it;
+        return encoding_iterator(value);
     }
 
     static const encoding_iterator end()
@@ -100,7 +100,7 @@ public:
     }
 
 private:
-    encoding_iterator it;
+    const typename encoding_iterator::value_type value;
 };
 
 typedef vbi_range<uint16_t> vbi;
