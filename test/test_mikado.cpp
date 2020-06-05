@@ -66,8 +66,8 @@ BOOST_AUTO_TEST_CASE ( mikado_connect )
     // 2020-06-04: with current recv() mock, no connection will work
     BOOST_CHECK(!mi.connected());
 
-    // ensure, that mikado sends something out when it is meant to connect
-    BOOST_CHECK_GT(mock.sent_packet_count, 0);
+    // ensure, that mikado sends exactly one packet when it connects
+    BOOST_CHECK_EQUAL(mock.sent_packet_count, 1);
 
     // check content of connect packet (??)
     const std::vector<unsigned char> ref = {
