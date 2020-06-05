@@ -8,6 +8,8 @@ namespace mikado{
 
 gsl::span<byte> build_connect_packet(gsl::span<byte> target_buffer)
 {
+    // FIXME: we need to ensure the packet fits into target_buffer!
+
     target_buffer[0] = packet_type::connect;
 
     auto it = target_buffer.begin() + 1;
@@ -24,17 +26,15 @@ gsl::span<byte> build_connect_packet(gsl::span<byte> target_buffer)
     constexpr uint16_t keep_alive = 0;
     *(++it) = msb(keep_alive);
     *(++it) = lsb(keep_alive);
+    ++it;
 
     constexpr uint16_t property_length = 0;
-    // FIXME: we should encode property_length as variable length integer here
-    *(++it) = lsb(property_length);
+    it = std::copy(vbi(property_length).begin(), vbi::end(), it);
 
     // attach a clientID
     const std::string clientID{"client"};
-
-    // FIXME: we should encode property_length as variable length integer here
-    *(++it) = lsb(clientID.length());
-    it = std::copy(clientID.begin(), clientID.end(), ++it);
+    it = std::copy(vbi(clientID.length()).begin(), vbi::end(), it);
+    it = std::copy(clientID.begin(), clientID.end(), it);
 
     const auto remaining_length = it - target_buffer.begin() - 2;
     target_buffer[1] = remaining_length;
