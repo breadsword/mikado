@@ -5,9 +5,6 @@
 
 namespace mikado{
 
-std::unique_ptr<Packet> Packet::parse(gsl::span<byte> data)
-{
-    return nullptr;
-}
+
 
 }

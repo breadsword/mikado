@@ -3,8 +3,6 @@
 
 #include <array>
 
-#include <gsl-lite/gsl-lite.hpp>
-
 #include "mikado.h"
 
 using namespace mikado;
@@ -20,12 +18,6 @@ BOOST_AUTO_TEST_CASE( mikado_constructor )
 
 struct connection_mock
 {
-    // TODO: I need to pass a send_buffer out, which is copied into my log
-    // on flush. In this way, I know which direction the exchange is meant to
-    // pass.
-    // TODO: How do I figure out, how much data was written into the buffer?
-    // -> Through send() or flush() calls.
-
     typedef std::vector<unsigned char> buf_t;
     buf_t packet;
 
@@ -35,7 +27,7 @@ struct connection_mock
     {
     }
 
-    /// Return number of bytes sent
+    /// Return number of bytes sent, <0 on error
     int send(m::gsl::span<const unsigned char> buf)
     {
         packet.push_back('>');
@@ -45,15 +37,33 @@ struct connection_mock
         return buf.size();
     }
 
-    /// Return number of bytes received, < 0 on error
+    /// Return number of bytes received, <0 on error
     int recv(m::gsl::span<unsigned char> buf)
     {
         // don't recv() anything
         packet.push_back('<');
-        return -1;
+
+        static constexpr m::byte connack_response[] =
+        {
+            packet_type::connack, 7,
+            0, // cannack flags: no session present
+            0, // connack reason code: 0 - success
+            4 ,// connack property length
+            0x24, 0, // propetry: maximum QoS 0
+            0x25, 0 // property: no retain available
+        };
+
+        static auto cursor = std::begin(connack_response);
+        auto rest = m::gsl::make_span(cursor, std::end(connack_response));
+
+        const auto incr = m::copy(cursor, std::end(connack_response),
+                                  buf.begin(), buf.end());
+        std::copy_n(cursor, incr, std::back_inserter(packet));
+
+        cursor += incr;
+
+        return incr;
     }
-
-
 };
 
 BOOST_AUTO_TEST_CASE ( mikado_connect )

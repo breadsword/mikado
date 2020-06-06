@@ -15,6 +15,7 @@ public:
     virtual bool is_valid();
     virtual gsl::span<byte> to_span(gsl::span<byte>) = 0;
 
+    /// Require, that the packet is completely (including fixed header) inside data
     static std::unique_ptr<Packet> parse(gsl::span<byte> data);
 
 protected:
@@ -24,6 +25,7 @@ protected:
 namespace packet_type
 {
 constexpr byte connect  {1 << 4};
+constexpr byte connack  {2 << 4};
 
 }; // namespace packet_type
 

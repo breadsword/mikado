@@ -63,3 +63,8 @@ bool mikado::Packet::is_valid()
 {
     return false;
 }
+
+std::unique_ptr<mikado::Packet> mikado::Packet::parse(gsl::span<mikado::byte> data)
+{
+    return nullptr;
+}

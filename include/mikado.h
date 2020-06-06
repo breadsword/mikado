@@ -35,19 +35,27 @@ template<class Connection>
 void mikado<Connection>::connect()
 {
     std::array<byte, 256> io_buffer {0};
-    auto fixed_header = gsl::make_span(io_buffer.begin(), 2);
-    auto remaining_buffer = gsl::make_span(&io_buffer[2], io_buffer.end());
 
     conn.send(connect::Packet{"client"}.to_span(io_buffer));
 
-    // TODO: how many bytes?
-    // idea: get all (for now); better: get 2 bytes, then remaining length
-    const auto r = conn.recv(fixed_header);
+    // get first byte -> packet type
+    const auto r = conn.recv(gsl::make_span(io_buffer.begin(), 1));
     if (r < 0)
     {
         return;
     }
-    const auto remaining_len = ::gsl::to_uchar(io_buffer[1]);
+    // now decode remaining length as vbi
+    vbi_decoder d_rem_len{};
+    auto no_digits = 0;
+    while (d_rem_len){
+        byte digit[1] = {0};
+        conn.recv(digit);
+        d_rem_len.read_byte(digit[0]);
+        no_digits++;
+    }
+
+    const auto remaining_len = vbi_decoder::value_type(d_rem_len);
+    auto remaining_buffer = gsl::make_span(&io_buffer[no_digits+1], io_buffer.end());
 
     conn.recv(remaining_buffer.first(remaining_len));
 
@@ -55,7 +63,7 @@ void mikado<Connection>::connect()
     // output can be:
     // - data corrupt
     // - packet complete, we can pick it up somewhere
-    if (connack->is_valid())
+    if (connack && connack->is_valid())
     {
         // actually check content of parsed packet
         m_connected = true;
