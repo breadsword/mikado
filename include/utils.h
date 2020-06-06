@@ -18,7 +18,7 @@ constexpr byte lsb(uint16_t n)
 }
 
 template <typename vbi_t>
-class vbi_range
+class vbi_encoder
 {
 public:
 
@@ -47,7 +47,7 @@ public:
         // preincrement
         encoding_iterator& operator++()
         {
-            val /= 128;
+            val >>= 7;
             if (val == 0){
                 isEnd = true;
             }
@@ -85,7 +85,7 @@ public:
         bool isEnd;
     };
 
-    vbi_range<vbi_t>(const typename encoding_iterator::value_type val) : value{val}
+    vbi_encoder<vbi_t>(const typename encoding_iterator::value_type val) : value{val}
     {}
 
     encoding_iterator begin() const
@@ -103,7 +103,41 @@ private:
     const typename encoding_iterator::value_type value;
 };
 
-typedef vbi_range<uint16_t> vbi;
+typedef vbi_encoder<uint16_t> vbi;
+
+/**
+ * @brief The vbi_decoder class
+ *
+ * I thought about modelling this as an output iterator. However, the input will
+ * be gathered byte-by-byte from a network stream, so it is natural to call de-
+ * coding with a function byte-by-byte and check if more data is needed.
+ * An output iterator would make sense, if the input sequence was available and
+ * allow to std::copy() the data.
+ */
+class vbi_decoder{
+public:
+    typedef uint16_t value_type;
+
+    vbi_decoder() : value{0}, multiplier{0}, more_to_read{true}
+    {}
+
+    bool read_byte(byte b);
+
+    explicit operator value_type()
+    {
+        return value;
+    }
+
+    explicit operator bool()
+    {
+        return more_to_read;
+    }
+
+private:
+    value_type value, multiplier;
+    bool more_to_read;
+};
+
 
 } // namespace mikado
 

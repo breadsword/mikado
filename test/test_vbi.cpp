@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE( encode_three_four_digits )
         BOOST_CHECK_EQUAL_COLLECTIONS(vbi(16384).begin(), vbi::end(),
                                       std::begin(ref), std::end(ref));
     }
-    typedef vbi_range<uint32_t> vbil;
+    typedef vbi_encoder<uint32_t> vbil;
     {
         const auto ref = {0xFF, 0xFF, 0x7F};
         BOOST_CHECK_EQUAL_COLLECTIONS(vbil(2097151).begin(), vbil::end(),
@@ -69,4 +69,32 @@ BOOST_AUTO_TEST_CASE( encode_three_four_digits )
                                       std::begin(ref), std::end(ref));
     }
 
+}
+
+BOOST_AUTO_TEST_CASE ( decode_one_digit )
+{
+    vbi_decoder d;
+
+    const auto r = d.read_byte(42);
+
+    BOOST_CHECK(r == true);
+    BOOST_CHECK(!d);
+    BOOST_CHECK_EQUAL(vbi_decoder::value_type(d), 42);
+}
+
+BOOST_AUTO_TEST_CASE ( decode_multiple_digits )
+{
+    vbi_decoder d;
+    const auto in = {0x80, 0x80, 0x01};
+    for (const auto b : in)
+    {
+        if(d){
+            d.read_byte(b);
+        }else
+        {
+            BOOST_FAIL("Reading failed early.");
+        }
+    }
+    BOOST_CHECK(!d);
+    BOOST_CHECK_EQUAL(vbi_decoder::value_type(d), 16384);
 }
