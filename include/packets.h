@@ -58,13 +58,11 @@ struct Packet : public ::mikado::Packet
 
     constexpr static auto type = packet_type::connect;
 
-//    constexpr static byte protocol_name[] =
-//    {0, 4, 'M', 'Q', 'T', 'T'};
-
     constexpr static byte protocol_name[] {'M', 'Q', 'T', 'T'};
 
     byte flags;
     uint16_t keep_alive;
+
     const std::string clientID;
 
     virtual gsl::span<byte> to_span(gsl::span<byte>) override;
