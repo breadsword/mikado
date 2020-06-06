@@ -73,8 +73,7 @@ BOOST_AUTO_TEST_CASE ( mikado_connect )
 
     mi.connect();
 
-    // 2020-06-04: with current recv() mock, no connection will work
-    BOOST_CHECK(!mi.connected());
+    BOOST_CHECK(mi.connected());
 
     // ensure, that mikado sends exactly one packet when it connects
     BOOST_CHECK_EQUAL(mock.sent_packet_count, 1);
@@ -91,7 +90,12 @@ BOOST_AUTO_TEST_CASE ( mikado_connect )
         0, // no properties
         6, //string length
         'c', 'l', 'i', 'e', 'n', 't',
-        '<' // try to get response
+        '<',
+        packet_type::connack, // connack packet
+        '<',
+        7, // remaining length
+        '<',
+        0, 0, 4, 0x24, 0, 0x25, 0
     };
     BOOST_CHECK_EQUAL_COLLECTIONS(mock.packet.begin(), mock.packet.end(), ref.begin(), ref.end());
 }
