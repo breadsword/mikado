@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE ( mikado_connect )
     // ensure, that mikado sends exactly one packet when it connects
     BOOST_CHECK_EQUAL(mock.sent_packet_count, 1);
 
-    // check content of connect packet (??)
+    // check content of packet exchange
     const std::vector<unsigned char> ref = {
         '>',
         packet_type::connect, 18,

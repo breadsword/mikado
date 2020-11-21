@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE ( decode_wrong_byte )
 
 BOOST_AUTO_TEST_CASE ( decode_templated_byte )
 {
-    const m::byte ref[] = {0x24, 123 };
+    const m::byte ref[] = {0x01, 123 };
 
     auto prop = m::get_prop(ref);
     auto p = dynamic_cast<m::properties::Maximum_QoS *>(prop.get());
@@ -67,3 +67,14 @@ BOOST_AUTO_TEST_CASE( decode_string )
     }
 }
 
+BOOST_AUTO_TEST_CASE( decode_vbi )
+{
+    {
+        const m::byte ref[] = {0x0B, 0x80, 0x01};
+        auto prop = m::get_prop(ref);
+        auto p = dynamic_cast<m::properties::Subscription_Identifier *>(prop.get());
+
+        BOOST_REQUIRE_NE(p, nullptr);
+        BOOST_CHECK_EQUAL(p->value, 128);
+    }
+}

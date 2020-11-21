@@ -5,6 +5,7 @@
 
 #include <packets.h>
 #include <utils.h>
+#include <vbi.h>
 
 namespace mikado {
 
@@ -55,11 +56,11 @@ void mikado<Connection>::connect()
     }
 
     const auto remaining_len = vbi_decoder::value_type(d_rem_len);
-    auto remaining_buffer = gsl::make_span(&io_buffer[no_digits+1], io_buffer.end());
+    auto packet_data = gsl::make_span(&io_buffer[no_digits+1], io_buffer.end());
 
-    conn.recv(remaining_buffer.first(remaining_len));
+    conn.recv(packet_data.first(remaining_len));
 
-    const auto connack = Packet::parse(io_buffer);
+    const auto connack = Packet::parse(io_buffer[0], packet_data);
     // output can be:
     // - data corrupt
     // - packet complete, we can pick it up somewhere

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "vbi.h"
 #include "utils.h"
 
 mikado::connect::Packet::~Packet()
@@ -61,10 +62,81 @@ mikado::Packet::~Packet()
 
 bool mikado::Packet::is_valid()
 {
+    return valid;
+}
+
+std::unique_ptr<mikado::Packet> mikado::Packet::parse(
+        byte packet_type,
+        gsl::span<mikado::byte> packet_data)
+{
+    std::unique_ptr<Packet> res;
+    switch (packet_type){
+    case packet_type::connack:
+        res = std::make_unique<connack::Packet>();
+        break;
+    }
+    res->valid = res->from_span(packet_data);
+
+    return res;
+}
+
+mikado::connack::Packet::~Packet()
+{
+}
+
+mikado::connack::Packet::Packet()
+{
+}
+
+gsl::span<mikado::byte> mikado::connack::Packet::to_span(gsl::span<mikado::byte> buf)
+{
+    return buf.first(0);
+}
+
+bool mikado::connack::Packet::from_span(gsl::span<mikado::byte> d)
+{
+    const auto connect_acknowledge_flags = d[0];
+    if (connect_acknowledge_flags == 0)
+        session_present = 0;
+    else if (connect_acknowledge_flags == 1)
+        session_present = 1;
+    else
+        return false;
+
+    reason_code = d[1];
+    if (reason_code == 0)
+    {
+        connected = true;
+    }
+
+    vbi_decoder prop_len{};
+    auto cursor = d.begin() + 2;
+    while (prop_len)
+    {
+        prop_len.read_byte(*cursor);
+        cursor++;
+    }
+
+    gsl::span<byte> prop_span =
+            gsl::make_span(cursor, vbi_decoder::value_type(prop_len));
+
+    // while (cursor != d.end())
+    const byte prop_type = *cursor++;
+    switch (static_cast<prop>(prop_type)) {
+    case prop::session_expiry:
+        session_expiry = *cursor++;
+        break;
+    case prop::receive_maximum:
+    {
+        const auto m_msb = *cursor++;
+        const auto m_lsb = *cursor++;
+        receive_maximum =  (m_msb<<8) + m_lsb;
+    }
+        break;
+    default:
+        return false;
+    }
+
     return false;
 }
 
-std::unique_ptr<mikado::Packet> mikado::Packet::parse(gsl::span<mikado::byte> data)
-{
-    return nullptr;
-}

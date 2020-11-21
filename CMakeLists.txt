@@ -9,10 +9,12 @@ LIST(APPEND LIB_SOURCES
     include/packets.h
     include/properties.h
     include/utils.h
+    include/vbi.h
     src/mikado.cpp
     src/packets.cpp
     src/properties.cpp
     src/utils.cpp
+    src/vbi.cpp
     )
 
 # Configure gsl-lite

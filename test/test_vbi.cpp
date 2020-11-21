@@ -1,7 +1,7 @@
 #define BOOST_TEST_MODULE vbi test
 #include <boost/test/unit_test.hpp>
 
-#include "utils.h"
+#include <vbi.h>
 
 #include <algorithm>
 

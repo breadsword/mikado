@@ -15,6 +15,18 @@ int main(int argc, char **argv)
     // connect the mikado
 //    mi.connect("example-client-id");
 
+    // mi.subscribe("/testtopic/a");
+
+    // mi.publish("/testpublish", "value");
+    // mi.loop();
+    // if (mi.has_received())
+    {
+        // output received message and topic
+
+    }
+
+    // mi.disconnect();
+
     // check for mikado's status and potential errors
 
 
