@@ -13,7 +13,7 @@ BOOST_AUTO_TEST_CASE( mikado_constructor )
     int i=5;
     mikado<int> mi{i};
 
-    BOOST_CHECK(!mi.connected());
+    BOOST_CHECK(mi.state() == m::state_t::disconnected);
 }
 
 struct connection_mock
@@ -71,9 +71,9 @@ BOOST_AUTO_TEST_CASE ( mikado_connect )
     connection_mock mock;
     auto mi = mikado<connection_mock>{mock};
 
-    mi.connect();
+    mi.request_connect();
 
-    BOOST_CHECK(mi.connected());
+    BOOST_CHECK(mi.state() == m::state_t::connection_requested);
 
     // ensure, that mikado sends exactly one packet when it connects
     BOOST_CHECK_EQUAL(mock.sent_packet_count, 1);
@@ -84,18 +84,12 @@ BOOST_AUTO_TEST_CASE ( mikado_connect )
         packet_type::connect, 18,
         0, 4, // string length
         'M', 'Q', 'T', 'T',  // string
-        5, // protocol version
-        2, // clean_start
+        4, // protocol version 3.1.1 (0x04)
+        1 << 1, // clean Session true
         0, 0, // keep alive
         0, // no properties
         6, //string length
         'c', 'l', 'i', 'e', 'n', 't',
-        '<',
-        packet_type::connack, // connack packet
-        '<',
-        7, // remaining length
-        '<',
-        0, 0, 4, 0x24, 0, 0x25, 0
     };
     BOOST_CHECK_EQUAL_COLLECTIONS(mock.packet.begin(), mock.packet.end(), ref.begin(), ref.end());
 }

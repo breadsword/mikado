@@ -32,7 +32,7 @@ constexpr byte connack  {2 << 4};
 
 namespace connect {
 
-constexpr byte mqtt_protocol_version {5};
+constexpr byte mqtt_protocol_version {4};
 
 namespace flags {
 constexpr byte username { 1 << 7};
@@ -57,7 +57,8 @@ public:
     virtual ~Packet();
     Packet(const std::string _clientID="",
            const uint16_t _keep_alive = 0,
-           const byte _flags = connect::flags::clean_start) : flags{_flags}, keep_alive{_keep_alive}, clientID{_clientID}
+           const byte _flags = connect::flags::clean_start) : flags{_flags},
+                keep_alive{_keep_alive}, clientID{_clientID}
     {}
     virtual gsl::span<byte> to_span(gsl::span<byte>) override;
 
