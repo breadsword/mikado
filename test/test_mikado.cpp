@@ -66,7 +66,7 @@ struct connection_mock
     }
 };
 
-BOOST_AUTO_TEST_CASE ( mikado_connect )
+BOOST_AUTO_TEST_CASE ( mikado_connect_request )
 {
     connection_mock mock;
     auto mi = mikado<connection_mock>{mock};
@@ -93,3 +93,39 @@ BOOST_AUTO_TEST_CASE ( mikado_connect )
     };
     BOOST_CHECK_EQUAL_COLLECTIONS(mock.packet.begin(), mock.packet.end(), ref.begin(), ref.end());
 }
+
+BOOST_AUTO_TEST_CASE ( mikado_connect )
+{
+    connection_mock mock;
+    auto mi = mikado<connection_mock>{mock};
+
+    mi.request_connect();
+    BOOST_CHECK(mi.state() == m::state_t::connection_requested);
+
+}
+
+BOOST_AUTO_TEST_CASE( receiver_len1 )
+{
+    const byte msg[] = {42, 1, 4};
+    receiver r(::gsl::make_span(msg));
+
+    r.advance();
+    BOOST_CHECK(r.state() == receiver_state::got_type);
+    r.advance();
+    BOOST_CHECK(r.state() == receiver_state::msg_incomplete);
+    r.advance();
+    BOOST_CHECK(r.state() == receiver_state::msg_complete);
+
+    BOOST_CHECK_EQUAL(r.msg_type(), 42);
+    BOOST_CHECK_EQUAL(r.content()[2], 4);
+
+}
+
+BOOST_AUTO_TEST_CASE( receiver_len0 )
+{
+    const byte msg[] = {42, 0};
+    receiver r(msg);
+    r.advance(2);
+    BOOST_CHECK(r.state() == receiver_state::msg_complete);
+}
+
