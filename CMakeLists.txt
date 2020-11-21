@@ -13,7 +13,6 @@ LIST(APPEND LIB_SOURCES
     src/mikado.cpp
     src/packets.cpp
     src/properties.cpp
-    src/utils.cpp
     src/vbi.cpp
     )
 
