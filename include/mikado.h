@@ -7,18 +7,16 @@
 #include <utils.h>
 #include <vbi.h>
 
-#include <vector>
-
 namespace mikado {
 
-namespace gsl = ::gsl_lite; // convenience alias
+// namespace gsl = ::gsl_lite; // convenience alias
 
 enum class state_t{
     disconnected,
     connection_requested,
     connected,
     subscribe_requested,
-    subscribed
+    error
 };
 
 enum class receiver_state{
@@ -31,8 +29,6 @@ enum class receiver_state{
 
 class receiver{
 public:
-    //TODO: make this non-copying by keeping two cursors into a buffer instead of vector
-
     // buf is the complete range we could expect to read a message from
     // start and end are cursors pointing to the start and end of the parsed
     // packet
@@ -62,41 +58,47 @@ private:
     gsl::span<const byte> buf;
     const byte *start, *end=nullptr;
 
-    std::vector<byte> packet;
-
 }; // class receiver
 
-template <class Connection>
-class mikado{
+class Connection{
 public:
-    mikado(Connection&);
-    void request_connect();
+    virtual int send(gsl::span<const byte>) = 0;
+    virtual gsl::span<byte> get_send_buf() = 0;
+    // virtual gsl::span<byte> recv() = 0;
+};
 
-    state_t state() const
-    {
-        return m_state;
-    }
+typedef std::function<void(gsl::span<const byte>, gsl::span<const byte>)> callback_t;
+
+// TODO: check, if mikado is actually a sender (mirrored to above receiver class)
+// mikado will place the respective packet to send in send_buf, but will not do the sending.
+// expecting the buffer to be random accessible, contiguous memory should not be too limiting.
+//
+// The state has to assume that sending has succeeded after we place it in the send_buf
+class mikado_sm{
+public:
+    mikado_sm(Connection&, callback_t=[](auto, auto){});
+
+    void request_connect();
+    void subscribe(const std::string topic);
+
+    void process_packet(gsl::span<const byte> packet);
+
+    state_t state() const;
 
 private:
     Connection& conn;
+    callback_t cb; // publish callback
 
+    gsl::span<byte> send_buf;
     state_t m_state = state_t::disconnected;
+
+    // we implement the state machine by having functions for each state we're in
+    // they will parse incoming packets and change the state machine state accordingly
+    void process_packet_conn_requested(gsl::span<const byte> packet_buf);
+    void process_packet_subscribe_requested(gsl::span<const byte> packet_buf);
+    void process_packet_connected(gsl::span<const byte> packet_buf);
 };
 
-template <class Connection>
-mikado<Connection>::mikado(Connection& _conn) : conn{_conn}
-{
-}
-
-template<class Connection>
-void mikado<Connection>::request_connect()
-{
-    std::array<byte, 256> io_buffer {0};
-
-    conn.send(connect::Packet{"client"}.to_span(io_buffer));
-
-    m_state = state_t::connection_requested;
-}
 
 }; // namespace mikado
 

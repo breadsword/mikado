@@ -1,7 +1,5 @@
 #include "mikado.h"
 
-using mikado::mikado;
-
 int main(int argc, char **argv)
 {
     // create socket to connect to mqtt broker
@@ -10,7 +8,7 @@ int main(int argc, char **argv)
     int myconn;
 
     // construct a mikado
-    auto mi = mikado<int>{myconn};
+    // auto mi = mikado::mikado_sm{myconn};
 
     // connect the mikado
 //    mi.connect("example-client-id");

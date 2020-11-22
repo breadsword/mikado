@@ -50,7 +50,7 @@ gsl::span<mikado::byte> mikado::connect::Packet::to_span(gsl::span<mikado::byte>
     return {buffer.begin(), it};
 }
 
-bool mikado::connect::Packet::from_span(gsl::span<mikado::byte>)
+bool mikado::connect::Packet::from_span(gsl::span<const mikado::byte>)
 {
     return false;
 }
@@ -67,7 +67,7 @@ bool mikado::Packet::is_valid()
 
 std::unique_ptr<mikado::Packet> mikado::Packet::parse(
         byte packet_type,
-        gsl::span<mikado::byte> packet_data)
+        gsl::span<const mikado::byte> packet_data)
 {
     std::unique_ptr<Packet> res;
     switch (packet_type){
@@ -93,7 +93,7 @@ gsl::span<mikado::byte> mikado::connack::Packet::to_span(gsl::span<mikado::byte>
     return buf.first(0);
 }
 
-bool mikado::connack::Packet::from_span(gsl::span<mikado::byte> d)
+bool mikado::connack::Packet::from_span(gsl::span<const mikado::byte> d)
 {
     const auto connect_acknowledge_flags = d[0];
     if (connect_acknowledge_flags == 0)
@@ -117,7 +117,7 @@ bool mikado::connack::Packet::from_span(gsl::span<mikado::byte> d)
         cursor++;
     }
 
-    gsl::span<byte> prop_span =
+    gsl::span<const byte> prop_span =
             gsl::make_span(cursor, vbi_decoder::value_type(prop_len));
 
     // while (cursor != d.end())
@@ -140,3 +140,131 @@ bool mikado::connack::Packet::from_span(gsl::span<mikado::byte> d)
     return false;
 }
 
+
+mikado::subscribe::Packet::~Packet()
+{}
+
+mikado::subscribe::Packet::Packet(uint16_t _packet_identifier,
+                                  const std::string &_topic_filter,
+                                  mikado::byte _QoS) :
+    packet_identifier{_packet_identifier}, topic_filter{_topic_filter}, QoS{_QoS}
+{}
+
+gsl::span<mikado::byte> mikado::subscribe::Packet::to_span(gsl::span<mikado::byte> d)
+{
+    auto it = &d[0];
+    *it++ = (packet_type::subscribe | 0x2);
+    // fill in remaining_length later (?)
+    const auto remaining_length = 2+2+topic_filter.length() + 1;
+    *it++ = remaining_length;
+    *it++ = msb(packet_identifier);
+    *it++ = lsb(packet_identifier);
+    *it++ = msb(topic_filter.length());
+    *it++ = lsb(topic_filter.length());
+
+    const auto inserted = copy(topic_filter.begin(), topic_filter.end(), it, std::end(d)-1);
+    it +=inserted;
+    *it++ = 0;
+
+    return gsl::make_span(std::begin(d), it);
+}
+
+bool mikado::subscribe::Packet::from_span(gsl::span<const mikado::byte> d)
+{
+    if (d[0] != (packet_type::connack | 0x2))
+    {
+        return false;
+    }
+
+    uint8_t remaining_length = d[1];
+    packet_identifier = (d[2]<<8) + d[3];
+
+    uint16_t payload_length = (d[4] << 8) + d[5];
+
+    topic_filter = std::string (&d[6], &d[6]+payload_length);
+    if (d[6+payload_length] != 0)
+    {
+        return false;
+    }
+    return true;
+}
+
+mikado::suback::Packet::~Packet()
+{
+
+}
+
+mikado::suback::Packet::Packet()
+{
+
+}
+
+gsl::span<mikado::byte> mikado::suback::Packet::to_span(gsl::span<mikado::byte>b)
+{
+    return gsl::make_span(std::begin(b), 0);
+}
+
+bool mikado::suback::Packet::from_span(gsl::span<const mikado::byte> d)
+{
+    if (d[0] != packet_type::suback)
+    {
+        return false;
+    }
+    uint8_t remaining_length = d[1];
+    if (remaining_length != 3)
+    {
+        return false;
+    }
+    packet_identifier = d[2] * 256 + d[3];
+
+    // we may be passed any byte value, so after conversion to enum class
+    // I want to make sure the value is actually a defined enum value.
+    switch (static_cast<result_t>(d[4])) {
+    case result_t::max_QoS_0:
+    case result_t::max_QoS_1:
+    case result_t::max_QoS_2:
+    case result_t::failure:
+        result = static_cast<result_t>(d[4]);
+        break;
+    default:
+        return false;
+        break;
+    }
+    valid = true;
+    return true;
+}
+
+mikado::publish::Packet::~Packet()
+{}
+
+mikado::publish::Packet::Packet()
+{}
+
+gsl::span<mikado::byte> mikado::publish::Packet::to_span(gsl::span<mikado::byte> b)
+{
+    return gsl::make_span(std::begin(b), 0);
+}
+
+bool mikado::publish::Packet::from_span(gsl::span<const mikado::byte> d)
+{
+    if ((d[0] & 0xF0) != packet_type::publish)
+    {
+        return false;
+    }
+    retain = (d[0] & 0x01);
+    QoS = (d[0] & 0x6);
+    if (QoS != 0)
+    {
+        // This parser does not support QoS 1 or 2 and will not deal with a
+        // packet identifier
+        return false;
+    }
+    uint8_t remaining_length = d[1];
+
+    uint16_t topic_length = d[2]*256 + d[3];
+    topic = gsl::make_span(&d[4], topic_length);
+    const auto payload_start = &d[topic_length+4];
+    payload = gsl::make_span(payload_start, std::end(d));
+    valid = true;
+    return true;
+}
