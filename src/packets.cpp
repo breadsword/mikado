@@ -5,11 +5,6 @@
 #include "vbi.h"
 #include "utils.h"
 
-mikado::connect::Packet::~Packet()
-{
-
-}
-
 constexpr mikado::byte mikado::connect::Packet::protocol_name[];
 
 gsl::span<mikado::byte> mikado::connect::Packet::to_span(gsl::span<mikado::byte> buffer)
@@ -50,40 +45,10 @@ gsl::span<mikado::byte> mikado::connect::Packet::to_span(gsl::span<mikado::byte>
     return {buffer.begin(), it};
 }
 
-bool mikado::connect::Packet::from_span(gsl::span<const mikado::byte>)
-{
-    return false;
-}
 
-mikado::Packet::~Packet()
-{
-
-}
-
-std::unique_ptr<mikado::Packet> mikado::Packet::parse(
-        byte packet_type,
-        gsl::span<const mikado::byte> packet_data)
-{
-    std::unique_ptr<Packet> res;
-    switch (packet_type){
-    case packet_type::connack:
-        res = std::make_unique<connack::Packet>();
-        break;
-    }
-    return res;
-}
-
-mikado::connack::Packet::~Packet()
-{
-}
 
 mikado::connack::Packet::Packet()
 {
-}
-
-gsl::span<mikado::byte> mikado::connack::Packet::to_span(gsl::span<mikado::byte> buf)
-{
-    return buf.first(0);
 }
 
 bool mikado::connack::Packet::from_span(gsl::span<const mikado::byte> d)
@@ -113,9 +78,6 @@ bool mikado::connack::Packet::from_span(gsl::span<const mikado::byte> d)
 }
 
 
-mikado::subscribe::Packet::~Packet()
-{}
-
 mikado::subscribe::Packet::Packet(uint16_t _packet_identifier,
                                   const std::string &_topic_filter,
                                   mikado::byte _QoS) :
@@ -141,39 +103,8 @@ gsl::span<mikado::byte> mikado::subscribe::Packet::to_span(gsl::span<mikado::byt
     return gsl::make_span(std::begin(d), it);
 }
 
-bool mikado::subscribe::Packet::from_span(gsl::span<const mikado::byte> d)
-{
-    if (d[0] != (packet_type::connack | 0x2))
-    {
-        return false;
-    }
-
-    uint8_t remaining_length = d[1];
-    packet_identifier = (d[2]<<8) + d[3];
-
-    uint16_t payload_length = (d[4] << 8) + d[5];
-
-    topic_filter = std::string (&d[6], &d[6]+payload_length);
-    if (d[6+payload_length] != 0)
-    {
-        return false;
-    }
-    return true;
-}
-
-mikado::suback::Packet::~Packet()
-{
-
-}
-
 mikado::suback::Packet::Packet()
 {
-
-}
-
-gsl::span<mikado::byte> mikado::suback::Packet::to_span(gsl::span<mikado::byte>b)
-{
-    return gsl::make_span(std::begin(b), 0);
 }
 
 bool mikado::suback::Packet::from_span(gsl::span<const mikado::byte> d)
@@ -202,9 +133,6 @@ bool mikado::suback::Packet::from_span(gsl::span<const mikado::byte> d)
 
     return true;
 }
-
-mikado::publish::Packet::~Packet()
-{}
 
 mikado::publish::Packet::Packet()
 {}
@@ -259,12 +187,6 @@ bool mikado::publish::Packet::from_span(gsl::span<const mikado::byte> d)
     return true;
 }
 
-mikado::pingreq::Packet::~Packet()
-{}
-
-mikado::pingreq::Packet::Packet()
-{}
-
 gsl::span<mikado::byte> mikado::pingreq::Packet::to_span(gsl::span<mikado::byte> d)
 {
     d[0] = packet_type::pingreq;
@@ -272,7 +194,3 @@ gsl::span<mikado::byte> mikado::pingreq::Packet::to_span(gsl::span<mikado::byte>
     return gsl::make_span(std::begin(d), 2);
 }
 
-bool mikado::pingreq::Packet::from_span(gsl::span<const mikado::byte>)
-{
-    return false;
-}
