@@ -16,6 +16,7 @@ enum class state_t{
     connection_requested,
     connected,
     subscribe_requested,
+    ping_await,
     error
 };
 
@@ -84,6 +85,7 @@ public:
                  bool retain=false);
 
     void process_packet(gsl::span<const byte> packet);
+    void send_ping();
 
     state_t state() const;
 

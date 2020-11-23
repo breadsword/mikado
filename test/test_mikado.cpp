@@ -240,6 +240,29 @@ BOOST_AUTO_TEST_CASE( mikado_send_publish )
                                   ref.begin(), ref.end());
 }
 
+BOOST_AUTO_TEST_CASE( mikado_send_ping )
+{
+    connection_mock mock;
+    auto mi = mikado_sm{mock};
+    mi.request_connect();
+    mi.process_packet(packet_connack);
+    BOOST_CHECK(mi.state() == state_t::connected);
+
+    mock.log.clear();
+
+    mi.send_ping();
+
+    const std::vector<byte> ref =
+    {
+        '>',
+        packet_type::pingreq,
+        0
+    };
+    BOOST_CHECK(mi.state() == state_t::ping_await );
+    BOOST_CHECK_EQUAL_COLLECTIONS(mock.log.begin(), mock.log.end(),
+                                  ref.begin(), ref.end());
+}
+
 BOOST_AUTO_TEST_CASE( receiver_len1 )
 {
     const byte msg[] = {42, 1, 4};

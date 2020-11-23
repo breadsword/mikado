@@ -125,6 +125,13 @@ void mikado_sm::process_packet(gsl::span<const byte> packet_buf)
 
 }
 
+void mikado_sm::send_ping()
+{
+    const auto msg = pingreq::Packet{}.to_span(conn.get_send_buf());
+    conn.send(msg);
+    m_state = state_t::ping_await;
+}
+
 state_t mikado_sm::state() const
 {
     return m_state;

@@ -25,12 +25,12 @@ protected:
 
 namespace packet_type
 {
-constexpr byte connect   {1 << 4};
-constexpr byte connack   {2 << 4};
-constexpr byte publish   {3 << 4};
-constexpr byte subscribe {8 << 4};
-constexpr byte suback    {9 << 4};
-
+constexpr byte connect   { 1 << 4};
+constexpr byte connack   { 2 << 4};
+constexpr byte publish   { 3 << 4};
+constexpr byte subscribe { 8 << 4};
+constexpr byte suback    { 9 << 4};
+constexpr byte pingreq   {12 << 4};
 }; // namespace packet_type
 
 namespace connect {
@@ -171,6 +171,18 @@ struct Packet : public ::mikado::Packet{
 };
 
 } // namespace publish
+
+namespace pingreq {
+
+struct Packet : public ::mikado::Packet{
+    virtual ~Packet();
+    Packet();
+    virtual gsl::span<byte> to_span(gsl::span<byte>) override;
+    virtual bool from_span(gsl::span<const byte>) override;
+};
+
+} // namespace pingreq
+
 
 } // namespace mikado
 

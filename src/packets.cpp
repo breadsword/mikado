@@ -290,3 +290,21 @@ bool mikado::publish::Packet::from_span(gsl::span<const mikado::byte> d)
     valid = true;
     return true;
 }
+
+mikado::pingreq::Packet::~Packet()
+{}
+
+mikado::pingreq::Packet::Packet()
+{}
+
+gsl::span<mikado::byte> mikado::pingreq::Packet::to_span(gsl::span<mikado::byte> d)
+{
+    d[0] = packet_type::pingreq;
+    d[1] = 0;
+    return gsl::make_span(std::begin(d), 2);
+}
+
+bool mikado::pingreq::Packet::from_span(gsl::span<const mikado::byte>)
+{
+    return false;
+}
