@@ -147,24 +147,41 @@ mikado::publish::Packet::Packet(gsl::span<const mikado::byte> _topic,
     topic{_topic}, payload{_payload}, retain{_retain}
 {}
 
+// put byte in target
+auto operator<< (gsl::span<mikado::byte> target, const mikado::byte value)
+{
+    target[0] = value;
+    return target.subspan(1);
+}
+
+// put uint16_t in target
+auto operator<< (gsl::span<mikado::byte> target, const uint16_t value)
+{
+    target[0] = mikado::msb(value);
+    target[1] = mikado::lsb(value);
+
+    return target.subspan(2);
+}
+
+// put string in target
+auto operator<<(gsl::span<mikado::byte> target, gsl::span<const mikado::byte> value)
+{
+    auto inserted = mikado::copy(value.begin(), value.end(), target.begin(), target.end());
+    return target.subspan(inserted);
+}
+
 gsl::span<mikado::byte> mikado::publish::Packet::to_span(gsl::span<mikado::byte> b)
 {
-    auto it = std::begin(b);
+    const uint8_t remaining_length = 2 + topic.size_bytes() + payload.size_bytes();
+    auto rest2 = (b
+                  << (uint8_t)(packet_type::publish | QoS<<1 | retain)
+                  << remaining_length
+                  << (uint16_t)topic.size_bytes()
+                  << topic
+                  << payload
+                  );
 
-    *it++ = packet_type::publish | QoS<<1 | retain;
-    const uint16_t remaining_length = 2 + topic.size_bytes() + payload.size_bytes();
-
-    *it++ = remaining_length;
-
-    *it++ = msb(topic.size_bytes());
-    *it++ = lsb(topic.size_bytes());
-    const auto inserted = copy(topic.begin(), topic.end(), it, std::end(b));
-    it+=inserted;
-
-    const auto inserted2 = copy(payload.begin(), payload.end(), it, std::end(b));
-    it +=inserted2;
-
-    return gsl::make_span(std::begin(b), it);
+    return gsl::make_span(std::begin(b), rest2.begin());
 }
 
 bool mikado::publish::Packet::from_span(gsl::span<const mikado::byte> d)
