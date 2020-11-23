@@ -71,7 +71,6 @@ enum class result_t{
 struct Packet
 {
 public:
-    Packet();
     bool from_span(gsl::span<const byte>);
 
     bool session_present;
@@ -108,9 +107,6 @@ enum class result_t : byte
 
 struct Packet
 {
-    Packet();
-    Packet(uint16_t _packet_identifier, result_t _result=result_t::max_QoS_0);
-
     uint16_t packet_identifier;
     result_t result;
 
