@@ -44,9 +44,7 @@ struct Packet
 public:
     Packet(const std::string _clientID="",
            const uint16_t _keep_alive = 0,
-           const byte _flags = connect::flags::clean_start) : flags{_flags},
-        keep_alive{_keep_alive}, clientID{_clientID}
-    {}
+           const byte _flags = connect::flags::clean_start);
     gsl::span<byte> to_span(gsl::span<byte>);
 
     constexpr static auto type = packet_type::connect;
@@ -88,7 +86,6 @@ namespace subscribe
 
 struct Packet
 {
-    Packet();
     Packet(uint16_t _packet_identifier, const std::string& _topic_filter, byte _QoS=0);
     gsl::span<byte> to_span(gsl::span<byte>);
 

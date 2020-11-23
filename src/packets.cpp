@@ -7,6 +7,10 @@
 
 constexpr mikado::byte mikado::connect::Packet::protocol_name[];
 
+mikado::connect::Packet::Packet(const std::string _clientID, const uint16_t _keep_alive, const mikado::byte _flags) : flags{_flags},
+    keep_alive{_keep_alive}, clientID{_clientID}
+{}
+
 gsl::span<mikado::byte> mikado::connect::Packet::to_span(gsl::span<mikado::byte> buffer)
 {
     // fixed header
@@ -141,8 +145,7 @@ mikado::publish::Packet::Packet(gsl::span<const mikado::byte> _topic,
                                 gsl::span<const mikado::byte> _payload,
                                 bool _retain) :
     topic{_topic}, payload{_payload}, retain{_retain}
-{
-}
+{}
 
 gsl::span<mikado::byte> mikado::publish::Packet::to_span(gsl::span<mikado::byte> b)
 {
@@ -186,6 +189,7 @@ bool mikado::publish::Packet::from_span(gsl::span<const mikado::byte> d)
     payload = gsl::make_span(payload_start, std::end(d));
     return true;
 }
+
 
 gsl::span<mikado::byte> mikado::pingreq::Packet::to_span(gsl::span<mikado::byte> d)
 {
