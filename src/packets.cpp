@@ -170,18 +170,64 @@ auto operator<<(gsl::span<mikado::byte> target, gsl::span<const mikado::byte> va
     return target.subspan(inserted);
 }
 
+namespace mikado {
+
+struct span_stream
+{
+    typedef gsl::span<byte> buf_t;
+    typedef gsl::span<const byte> cbuf_t;
+
+    span_stream(buf_t _buf) : buf{_buf}, cursor{buf.begin()} {}
+    span_stream(buf_t _buf, buf_t::iterator _cursor) : buf{_buf}, cursor{_cursor} {}
+
+    buf_t buf;
+    buf_t::iterator cursor = buf.begin();
+    buf_t::iterator begin = buf.begin();
+
+
+    buf_t content()
+    {
+        return gsl::make_span(buf.begin(), cursor);
+    }
+
+    // put byte in target
+    span_stream& operator<< (const mikado::byte value)
+    {
+        *cursor++ = value;
+        return *this;
+    }
+
+    span_stream& operator<< (const uint16_t value)
+    {
+        *cursor++ = msb(value);
+        *cursor++ = lsb(value);
+        return *this;
+    }
+
+    span_stream& operator<< (const cbuf_t value)
+    {
+        const auto inserted = copy(value.begin(), value.end(),
+                                   cursor, buf.end());
+        cursor += inserted;
+        return *this;
+    }
+
+};
+
+} // namespace mikado
+
 gsl::span<mikado::byte> mikado::publish::Packet::to_span(gsl::span<mikado::byte> b)
 {
     const uint8_t remaining_length = 2 + topic.size_bytes() + payload.size_bytes();
-    auto rest2 = (b
-                  << (uint8_t)(packet_type::publish | QoS<<1 | retain)
-                  << remaining_length
-                  << (uint16_t)topic.size_bytes()
-                  << topic
-                  << payload
-                  );
 
-    return gsl::make_span(std::begin(b), rest2.begin());
+    span_stream s{b};
+    s << (uint8_t)(packet_type::publish | QoS<<1 | retain)
+      << remaining_length
+      << (uint16_t)topic.size_bytes()
+      << topic
+      << payload
+         ;
+    return s.content();
 }
 
 bool mikado::publish::Packet::from_span(gsl::span<const mikado::byte> d)
