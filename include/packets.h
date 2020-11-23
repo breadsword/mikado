@@ -158,7 +158,8 @@ namespace publish {
 struct Packet : public ::mikado::Packet{
     virtual ~Packet();
     Packet();
-    Packet(gsl::span<const byte> topic, gsl::span<const byte> payload);
+    Packet(gsl::span<const byte> topic, gsl::span<const byte> payload,
+           bool retain=false);
     virtual gsl::span<byte> to_span(gsl::span<byte>) override;
 
     bool retain = false;

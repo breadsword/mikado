@@ -240,9 +240,31 @@ mikado::publish::Packet::~Packet()
 mikado::publish::Packet::Packet()
 {}
 
+mikado::publish::Packet::Packet(gsl::span<const mikado::byte> _topic,
+                                gsl::span<const mikado::byte> _payload,
+                                bool _retain) :
+    topic{_topic}, payload{_payload}, retain{_retain}
+{
+}
+
 gsl::span<mikado::byte> mikado::publish::Packet::to_span(gsl::span<mikado::byte> b)
 {
-    return gsl::make_span(std::begin(b), 0);
+    auto it = std::begin(b);
+
+    *it++ = packet_type::publish | QoS<<1 | retain;
+    const uint16_t remaining_length = 2 + topic.size_bytes() + payload.size_bytes();
+
+    *it++ = remaining_length;
+
+    *it++ = msb(topic.size_bytes());
+    *it++ = lsb(topic.size_bytes());
+    const auto inserted = copy(topic.begin(), topic.end(), it, std::end(b));
+    it+=inserted;
+
+    const auto inserted2 = copy(payload.begin(), payload.end(), it, std::end(b));
+    it +=inserted2;
+
+    return gsl::make_span(std::begin(b), it);
 }
 
 bool mikado::publish::Packet::from_span(gsl::span<const mikado::byte> d)

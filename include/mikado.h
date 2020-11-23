@@ -80,6 +80,8 @@ public:
 
     void request_connect();
     void subscribe(const std::string topic);
+    void publish(gsl::span<const byte> topic, gsl::span<const byte> payload,
+                 bool retain=false);
 
     void process_packet(gsl::span<const byte> packet);
 

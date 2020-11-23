@@ -212,10 +212,38 @@ BOOST_AUTO_TEST_CASE( mikado_receive_publish )
     BOOST_CHECK_EQUAL(callback_data.payload, "Hello");
 }
 
+BOOST_AUTO_TEST_CASE( mikado_send_publish )
+{
+    connection_mock mock;
+    auto mi = mikado_sm{mock};
+
+    mi.request_connect();
+    mi.process_packet(packet_connack);
+    BOOST_CHECK(mi.state() == state_t::connected);
+
+    mock.log.clear();
+    const std::vector<byte> t = {'a','/','b'};
+    const std::vector<byte> p = {'t', 'h', 'i', 's'};
+    mi.publish(t, p);
+    BOOST_CHECK(mi.state() == state_t::connected);
+
+    const std::vector<byte> ref =
+    {
+        '>',
+        packet_type::publish,
+        9, //remaining length
+        0, 3, 'a', '/', 'b', //topic
+        't', 'h', 'i', 's' // payload
+    };
+
+    BOOST_CHECK_EQUAL_COLLECTIONS(mock.log.begin(), mock.log.end(),
+                                  ref.begin(), ref.end());
+}
+
 BOOST_AUTO_TEST_CASE( receiver_len1 )
 {
     const byte msg[] = {42, 1, 4};
-    receiver r(::gsl::make_span(msg));
+    receiver r(gsl::make_span(msg));
 
     r.advance();
     BOOST_CHECK(r.state() == receiver_state::got_type);
