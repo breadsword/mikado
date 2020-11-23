@@ -263,6 +263,28 @@ BOOST_AUTO_TEST_CASE( mikado_send_ping )
                                   ref.begin(), ref.end());
 }
 
+const std::vector<byte> packet_pingresp
+{
+    packet_type::pingresp,
+    0
+};
+
+BOOST_AUTO_TEST_CASE( mikado_receive_pingresp )
+{
+    connection_mock mock;
+    auto mi = mikado_sm{mock};
+    mi.request_connect();
+    mi.process_packet(packet_connack);
+    mi.send_ping();
+    BOOST_CHECK(mi.state() == state_t::ping_await );
+
+    mi.process_packet(packet_publish);
+    BOOST_CHECK(mi.state() == state_t::ping_await );
+
+    mi.process_packet(packet_pingresp);
+    BOOST_CHECK(mi.state() == state_t::connected);
+}
+
 BOOST_AUTO_TEST_CASE( receiver_len1 )
 {
     const byte msg[] = {42, 1, 4};

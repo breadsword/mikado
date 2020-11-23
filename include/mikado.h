@@ -101,6 +101,8 @@ private:
     void process_packet_conn_requested(gsl::span<const byte> packet_buf);
     void process_packet_subscribe_requested(gsl::span<const byte> packet_buf);
     void process_packet_connected(gsl::span<const byte> packet_buf);
+    void process_packet_ping_await(gsl::span<const byte> packet_buf);
+    bool handle_publish(gsl::span<const byte> packet_buf);
 };
 
 

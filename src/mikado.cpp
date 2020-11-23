@@ -117,6 +117,9 @@ void mikado_sm::process_packet(gsl::span<const byte> packet_buf)
     case state_t::connected:
         process_packet_connected(packet_buf);
         break;
+    case state_t::ping_await:
+        process_packet_ping_await(packet_buf);
+        break;
     default:
         // no state where we expect a packet
         m_state = state_t::error;
@@ -220,24 +223,67 @@ void mikado_sm::process_packet_subscribe_requested(gsl::span<const byte> packet_
     }
 }
 
+bool mikado::mikado_sm::handle_publish(gsl::span<const byte> packet_buf)
+{
+    publish::Packet p{};
+    auto const r = p.from_span(packet_buf);
+    if (r && p.is_valid())
+    {
+        cb(p.topic, p.payload);
+        return true;
+    }
+    return false;
+}
+
 void mikado_sm::process_packet_connected(gsl::span<const byte> packet_buf)
 {
     const auto packet_type = packet_buf[0];
     switch (packet_type) {
     case packet_type::publish:
     {
-        publish::Packet p{};
-        auto const r = p.from_span(packet_buf);
-        if (r && p.is_valid())
+        if (handle_publish(packet_buf))
+        {}
+        else
         {
-            cb(p.topic, p.payload);
+            m_state = state_t::error;
         }
-        m_state = state_t::connected;
     }
         break;
 
     default:
         m_state = state_t::error;
+    }
+}
+
+void mikado_sm::process_packet_ping_await(gsl::span<const byte> packet_buf)
+{
+    const auto packet_type = packet_buf[0];
+    switch (packet_type) {
+    case packet_type::publish :
+    {
+        if (handle_publish(packet_buf))
+        {}
+        else
+        {
+            m_state = state_t::error;
+        }
+    }
+        break;
+    case packet_type::pingresp:
+    {
+        if (packet_buf[1] == 0)
+        {
+            m_state = state_t::connected;
+        }
+        else
+        {
+            m_state = state_t::error;
+        }
+    }
+        break;
+    default:
+        m_state = state_t::error;
+        break;
     }
 }
 

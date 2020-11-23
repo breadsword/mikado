@@ -31,6 +31,7 @@ constexpr byte publish   { 3 << 4};
 constexpr byte subscribe { 8 << 4};
 constexpr byte suback    { 9 << 4};
 constexpr byte pingreq   {12 << 4};
+constexpr byte pingresp  {13 << 4};
 }; // namespace packet_type
 
 namespace connect {
