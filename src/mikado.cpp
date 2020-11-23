@@ -140,29 +140,29 @@ state_t mikado_sm::state() const
     return m_state;
 }
 
-// FIXME: this must go into packets.h
-struct connack_packet
-{
-    bool session_present;
-    uint8_t return_code;
+//// FIXME: this must go into packets.h
+//struct connack_packet
+//{
+//    bool session_present;
+//    uint8_t return_code;
 
-    bool from_span(gsl::span<const byte> sp)
-    {
-        if (sp[0] != packet_type::connack)
-        {
-            // verify packet_type
-            return false;
-        }
-        if (sp[1] != 2)
-        {
-            // verify remaining_length
-            return false;
-        }
-        session_present = sp[2] & 0x1;
-        return_code = sp[3];
-        return true;
-    }
-};
+//    bool from_span(gsl::span<const byte> sp)
+//    {
+//        if (sp[0] != packet_type::connack)
+//        {
+//            // verify packet_type
+//            return false;
+//        }
+//        if (sp[1] != 2)
+//        {
+//            // verify remaining_length
+//            return false;
+//        }
+//        session_present = sp[2] & 0x1;
+//        return_code = sp[3];
+//        return true;
+//    }
+//};
 
 void mikado_sm::process_packet_conn_requested(gsl::span<const byte> packet_buf)
 {
@@ -172,9 +172,9 @@ void mikado_sm::process_packet_conn_requested(gsl::span<const byte> packet_buf)
     {
     case packet_type::connack:
     {
-        auto p = connack_packet();
+        auto p = connack::Packet{};
         const auto r = p.from_span(packet_buf);
-        if (r && p.return_code==0)
+        if (r && p.is_valid() && p.return_code==connack::result_t::accepted)
         {
             m_state = state_t::connected;
         }
@@ -212,10 +212,15 @@ void mikado_sm::process_packet_subscribe_requested(gsl::span<const byte> packet_
 
     }
         break;
-        //    case packet_type::publish:
-        //    {
-
-        //    }
+    case packet_type::publish:
+    {
+        if (handle_publish(packet_buf))
+        {}
+        else
+        {
+            m_state = state_t::error;
+        }
+    }
     default:
         m_state = state_t::error;
         break;

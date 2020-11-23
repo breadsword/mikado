@@ -95,49 +95,29 @@ gsl::span<mikado::byte> mikado::connack::Packet::to_span(gsl::span<mikado::byte>
 
 bool mikado::connack::Packet::from_span(gsl::span<const mikado::byte> d)
 {
-    const auto connect_acknowledge_flags = d[0];
-    if (connect_acknowledge_flags == 0)
-        session_present = 0;
-    else if (connect_acknowledge_flags == 1)
-        session_present = 1;
+    if (d[0] != packet_type::connack)
+    {
+        // verify packet_type
+        return false;
+    }
+    if (d[1] != 2)
+    {
+        // verify remaining_length
+        return false;
+    }
+    session_present = d[2] & 0x1;
+
+    if (d[3] >=0 && d[3] < 6)
+    {
+        return_code = static_cast<result_t>(d[3]);
+    }
     else
-        return false;
-
-    reason_code = d[1];
-    if (reason_code == 0)
     {
-        connected = true;
-    }
-
-    vbi_decoder prop_len{};
-    auto cursor = d.begin() + 2;
-    while (prop_len)
-    {
-        prop_len.read_byte(*cursor);
-        cursor++;
-    }
-
-    gsl::span<const byte> prop_span =
-            gsl::make_span(cursor, vbi_decoder::value_type(prop_len));
-
-    // while (cursor != d.end())
-    const byte prop_type = *cursor++;
-    switch (static_cast<prop>(prop_type)) {
-    case prop::session_expiry:
-        session_expiry = *cursor++;
-        break;
-    case prop::receive_maximum:
-    {
-        const auto m_msb = *cursor++;
-        const auto m_lsb = *cursor++;
-        receive_maximum =  (m_msb<<8) + m_lsb;
-    }
-        break;
-    default:
         return false;
     }
 
-    return false;
+    valid = true;
+    return true;
 }
 
 
@@ -219,17 +199,15 @@ bool mikado::suback::Packet::from_span(gsl::span<const mikado::byte> d)
 
     // we may be passed any byte value, so after conversion to enum class
     // I want to make sure the value is actually a defined enum value.
-    switch (static_cast<result_t>(d[4])) {
-    case result_t::max_QoS_0:
-    case result_t::max_QoS_1:
-    case result_t::max_QoS_2:
-    case result_t::failure:
+    if ((d[4] >=0 && d[4] <=2) || d[4] == 0x80)
+    {
         result = static_cast<result_t>(d[4]);
-        break;
-    default:
-        return false;
-        break;
     }
+    else
+    {
+        return false;
+    }
+
     valid = true;
     return true;
 }

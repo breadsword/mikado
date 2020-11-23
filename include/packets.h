@@ -80,34 +80,26 @@ public:
 
 namespace connack {
 
+enum class result_t{
+    accepted = 0,
+    refused_protocol_version = 1,
+    refused_identifier_rejected = 2,
+    refused_server_unavailable = 3,
+    refused_authentication_failure = 4,
+    refused_authorization_failure = 5
+};
+
 struct Packet : public ::mikado::Packet
 {
 public:
     virtual ~Packet();
     Packet();
     virtual gsl::span<byte> to_span(gsl::span<byte>) override;
-
-    constexpr static auto type = packet_type::connack;
+    virtual bool from_span(gsl::span<const byte>) override;
 
     bool session_present;
-    byte reason_code;
-    bool connected = false;
+    result_t return_code;
 
-    int session_expiry = -1;
-    int receive_maximum = -1;
-    int maximum_qos = -1;
-    int retain_available = -1;
-    std::string client_identifier = "";
-    int server_keepalive = -1;
-
-    virtual bool from_span(gsl::span<const byte>) override;
-};
-
-enum class prop : byte
-{
-    session_expiry = 0x11,
-    receive_maximum = 0x21,
-    maximum_qos = 0x24
 };
 
 } // namespace connack
