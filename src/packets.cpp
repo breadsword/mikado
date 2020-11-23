@@ -172,39 +172,44 @@ auto operator<<(gsl::span<mikado::byte> target, gsl::span<const mikado::byte> va
 
 namespace mikado {
 
-struct span_stream
+// TODO: calculate remaining_length on the fly, put it into stream when requested
+
+struct packet_stream
 {
     typedef gsl::span<byte> buf_t;
     typedef gsl::span<const byte> cbuf_t;
 
-    span_stream(buf_t _buf) : buf{_buf}, cursor{buf.begin()} {}
-    span_stream(buf_t _buf, buf_t::iterator _cursor) : buf{_buf}, cursor{_cursor} {}
-
     buf_t buf;
-    buf_t::iterator cursor = buf.begin();
-    buf_t::iterator begin = buf.begin();
+    buf_t::iterator cursor;
 
+    packet_stream(const byte packet_header, buf_t _buf) :
+        buf{_buf}, cursor{buf.begin() + 2}
+    {
+        buf[0] = packet_header;
+    }
 
     buf_t content()
     {
+        // add remaining_length info when returning content
+        buf[1] = cursor - buf.begin() - 2;
         return gsl::make_span(buf.begin(), cursor);
     }
 
     // put byte in target
-    span_stream& operator<< (const mikado::byte value)
+    packet_stream& operator<< (const mikado::byte value)
     {
         *cursor++ = value;
         return *this;
     }
 
-    span_stream& operator<< (const uint16_t value)
+    packet_stream& operator<< (const uint16_t value)
     {
         *cursor++ = msb(value);
         *cursor++ = lsb(value);
         return *this;
     }
 
-    span_stream& operator<< (const cbuf_t value)
+    packet_stream& operator<< (const cbuf_t value)
     {
         const auto inserted = copy(value.begin(), value.end(),
                                    cursor, buf.end());
@@ -220,13 +225,11 @@ gsl::span<mikado::byte> mikado::publish::Packet::to_span(gsl::span<mikado::byte>
 {
     const uint8_t remaining_length = 2 + topic.size_bytes() + payload.size_bytes();
 
-    span_stream s{b};
-    s << (uint8_t)(packet_type::publish | QoS<<1 | retain)
-      << remaining_length
-      << (uint16_t)topic.size_bytes()
+    const uint8_t first_byte = (packet_type::publish | QoS<<1 | retain);
+    packet_stream s{first_byte, b};
+    s << (uint16_t)topic.size_bytes()
       << topic
-      << payload
-         ;
+      << payload;
     return s.content();
 }
 
