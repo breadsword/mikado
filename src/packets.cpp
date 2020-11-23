@@ -60,11 +60,6 @@ mikado::Packet::~Packet()
 
 }
 
-bool mikado::Packet::is_valid()
-{
-    return valid;
-}
-
 std::unique_ptr<mikado::Packet> mikado::Packet::parse(
         byte packet_type,
         gsl::span<const mikado::byte> packet_data)
@@ -75,8 +70,6 @@ std::unique_ptr<mikado::Packet> mikado::Packet::parse(
         res = std::make_unique<connack::Packet>();
         break;
     }
-    res->valid = res->from_span(packet_data);
-
     return res;
 }
 
@@ -116,7 +109,6 @@ bool mikado::connack::Packet::from_span(gsl::span<const mikado::byte> d)
         return false;
     }
 
-    valid = true;
     return true;
 }
 
@@ -208,7 +200,6 @@ bool mikado::suback::Packet::from_span(gsl::span<const mikado::byte> d)
         return false;
     }
 
-    valid = true;
     return true;
 }
 
@@ -265,7 +256,6 @@ bool mikado::publish::Packet::from_span(gsl::span<const mikado::byte> d)
     topic = gsl::make_span(&d[4], topic_length);
     const auto payload_start = &d[topic_length+4];
     payload = gsl::make_span(payload_start, std::end(d));
-    valid = true;
     return true;
 }
 

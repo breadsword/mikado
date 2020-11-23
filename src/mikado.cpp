@@ -174,7 +174,7 @@ void mikado_sm::process_packet_conn_requested(gsl::span<const byte> packet_buf)
     {
         auto p = connack::Packet{};
         const auto r = p.from_span(packet_buf);
-        if (r && p.is_valid() && p.return_code==connack::result_t::accepted)
+        if (r && p.return_code==connack::result_t::accepted)
         {
             m_state = state_t::connected;
         }
@@ -201,7 +201,7 @@ void mikado_sm::process_packet_subscribe_requested(gsl::span<const byte> packet_
     {
         suback::Packet p{};
         auto const r = p.from_span(packet_buf);
-        if (r && p.is_valid() && p.result==suback::result_t::max_QoS_0)
+        if (r && p.result==suback::result_t::max_QoS_0)
         {
             m_state = state_t::connected;
         }
@@ -232,7 +232,7 @@ bool mikado::mikado_sm::handle_publish(gsl::span<const byte> packet_buf)
 {
     publish::Packet p{};
     auto const r = p.from_span(packet_buf);
-    if (r && p.is_valid())
+    if (r)
     {
         cb(p.topic, p.payload);
         return true;

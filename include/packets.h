@@ -12,15 +12,12 @@ class Packet
 public:
     virtual ~Packet();
 
-    virtual bool is_valid();
     virtual gsl::span<byte> to_span(gsl::span<byte>) = 0;
 
     /// Require, that the packet is completely (including fixed header) inside data
     static std::unique_ptr<Packet> parse(byte packet_type, gsl::span<const byte> packet_data);
 
     virtual bool from_span(gsl::span<const byte>) = 0;
-protected:
-    bool valid = false;
 };
 
 namespace packet_type
