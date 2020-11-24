@@ -52,6 +52,14 @@ LIST(APPEND TEST_SOURCES
     test/test_properties.cpp
     )
 
+LIST(APPEND EXAMPLE_LIB_SOURCES
+    examples/log.h
+    examples/net_util.h
+    examples/net_util.cpp
+    )
+
+add_library(example_lib ${EXAMPLE_LIB_SOURCES})
+
 LIST(APPEND EXAMPLE_SOURCES
     examples/connect.cpp
     )
@@ -63,7 +71,7 @@ foreach(EXAMPLE_SOURCE ${EXAMPLE_SOURCES})
     MESSAGE(NOTICE "Found example " ${EXAMPLE_NAME})
 
     add_executable(${EXAMPLE_NAME} ${EXAMPLE_SOURCE})
-    target_link_libraries(${EXAMPLE_NAME} ${LIBRARY_NAME})
+    target_link_libraries(${EXAMPLE_NAME} ${LIBRARY_NAME} example_lib)
 endforeach()
 
 set(Boost_USE_STATIC_LIBS ON)
