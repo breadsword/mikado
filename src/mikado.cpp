@@ -85,9 +85,9 @@ gsl::span<const byte> receiver::content() const
 mikado_sm::mikado_sm(Connection& _conn, callback_t _cb) : conn{_conn}, cb{_cb}
 {}
 
-void mikado_sm::request_connect()
+void mikado_sm::request_connect(const std::string& client)
 {
-    const auto msg = connect::Packet{"client"}.to_span(conn.get_send_buf());
+    const auto msg = connect::Packet{client}.to_span(conn.get_send_buf());
     conn.send(msg);
     m_state = state_t::connection_requested;
 }
@@ -139,30 +139,6 @@ state_t mikado_sm::state() const
 {
     return m_state;
 }
-
-//// FIXME: this must go into packets.h
-//struct connack_packet
-//{
-//    bool session_present;
-//    uint8_t return_code;
-
-//    bool from_span(gsl::span<const byte> sp)
-//    {
-//        if (sp[0] != packet_type::connack)
-//        {
-//            // verify packet_type
-//            return false;
-//        }
-//        if (sp[1] != 2)
-//        {
-//            // verify remaining_length
-//            return false;
-//        }
-//        session_present = sp[2] & 0x1;
-//        return_code = sp[3];
-//        return true;
-//    }
-//};
 
 void mikado_sm::process_packet_conn_requested(gsl::span<const byte> packet_buf)
 {

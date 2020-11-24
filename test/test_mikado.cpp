@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE ( mikado_connect_request )
     connection_mock mock;
     auto mi = mikado_sm{mock};
 
-    mi.request_connect();
+    mi.request_connect("client");
 
     BOOST_CHECK(mi.state() == state_t::connection_requested);
 
@@ -102,8 +102,7 @@ BOOST_AUTO_TEST_CASE ( mikado_connect_request )
         4, // protocol version 3.1.1 (0x04)
         1 << 1, // clean Session true
         0, 0, // keep alive
-        0, // no properties
-        6, //string length
+        0, 6, //string length
         'c', 'l', 'i', 'e', 'n', 't',
     };
     BOOST_CHECK_EQUAL_COLLECTIONS(mock.log.begin(), mock.log.end(), ref.begin(), ref.end());
@@ -119,7 +118,7 @@ BOOST_AUTO_TEST_CASE ( mikado_connect )
 {
     connection_mock mock;
     auto mi = mikado_sm{mock};
-    mi.request_connect();
+    mi.request_connect("");
     BOOST_CHECK(mi.state() == state_t::connection_requested);
 
     mi.process_packet(packet_connack);
@@ -130,7 +129,7 @@ BOOST_AUTO_TEST_CASE( mikado_subscribe )
 {
     connection_mock mock;
     auto mi = mikado_sm{mock};
-    mi.request_connect();
+    mi.request_connect("");
     mi.process_packet(packet_connack);
 
     mock.log.clear();
@@ -163,7 +162,7 @@ BOOST_AUTO_TEST_CASE( mikado_subscribe_confirm )
     connection_mock mock;
     auto mi = mikado_sm{mock};
 
-    mi.request_connect();
+    mi.request_connect("");
     mi.process_packet(packet_connack);
     mi.subscribe("a/b");
     BOOST_CHECK(mi.state() == state_t::subscribe_requested);
@@ -201,7 +200,7 @@ BOOST_AUTO_TEST_CASE( mikado_receive_publish )
     callback_mock callback_data;
     auto mi = mikado_sm{mock, [&callback_data](auto t, auto p){callback_data(t, p);}};
 
-    mi.request_connect();
+    mi.request_connect("");
     mi.process_packet(packet_connack);
     BOOST_CHECK(mi.state() == state_t::connected);
 
@@ -217,7 +216,7 @@ BOOST_AUTO_TEST_CASE( mikado_send_publish )
     connection_mock mock;
     auto mi = mikado_sm{mock};
 
-    mi.request_connect();
+    mi.request_connect("");
     mi.process_packet(packet_connack);
     BOOST_CHECK(mi.state() == state_t::connected);
 
@@ -244,7 +243,7 @@ BOOST_AUTO_TEST_CASE( mikado_send_ping )
 {
     connection_mock mock;
     auto mi = mikado_sm{mock};
-    mi.request_connect();
+    mi.request_connect("");
     mi.process_packet(packet_connack);
     BOOST_CHECK(mi.state() == state_t::connected);
 
@@ -273,7 +272,7 @@ BOOST_AUTO_TEST_CASE( mikado_receive_pingresp )
 {
     connection_mock mock;
     auto mi = mikado_sm{mock};
-    mi.request_connect();
+    mi.request_connect("");
     mi.process_packet(packet_connack);
     mi.send_ping();
     BOOST_CHECK(mi.state() == state_t::ping_await );

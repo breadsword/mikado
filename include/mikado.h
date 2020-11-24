@@ -79,7 +79,7 @@ class mikado_sm{
 public:
     mikado_sm(Connection&, callback_t=[](auto, auto){});
 
-    void request_connect();
+    void request_connect(const std::string& clientID);
     void subscribe(const std::string topic);
     void publish(gsl::span<const byte> topic, gsl::span<const byte> payload,
                  bool retain=false);
