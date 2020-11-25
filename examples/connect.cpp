@@ -1,5 +1,7 @@
 #include "mikado.h"
 
+#include <boost/io/ios_state.hpp>
+
 #include "net_util.h"
 #include <sys/socket.h>
 #include <netdb.h>
@@ -60,10 +62,11 @@ struct Socket_connection : public m::Connection
 
 
 
-auto recv_packet(Socket_connection& conn)
+std::array<m::byte, 258> recv_buf{0};
+
+gsl::span<const m::byte> recv_packet(Socket_connection& conn)
 {
-    std::array<m::byte, 258> recv_buf;
-    const auto r = recv(conn.sock.s, recv_buf.data(), recv_buf.size(), 0);
+    const auto r = recv(conn.sock.s, &recv_buf[0], recv_buf.size(), 0);
     LOG << "recv r: " << r << endl;
     // TODO: use receiver to complete packet
     m::receiver rec{recv_buf};
@@ -77,9 +80,10 @@ auto recv_packet(Socket_connection& conn)
 
 std::ostream& operator<< (std::ostream& os, gsl::span<const m::byte> s)
 {
+    boost::io::ios_all_saver ifs(os);
     for (const auto c : s)
     {
-        os << c;
+        os << std::hex << std::showbase <<  (int)c << " '" << std::dec << c << "' ";
     }
     return os;
 }
@@ -111,7 +115,11 @@ int main(int argc, char **argv)
     LOG << "Subscribe requested" << endl;
     const auto sub_response = recv_packet(conn);
 
+    LOG << "sub_response: " << sub_response << endl;
+
     mi.process_packet(sub_response);
+    LOG << "mikado state: " <<  (int)mi.state() << endl;
+
     if (mi.state() == m::state_t::connected)
     {
         LOG << "Subscribe successful" << endl;

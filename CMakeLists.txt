@@ -66,18 +66,20 @@ LIST(APPEND EXAMPLE_SOURCES
 
 ENABLE_TESTING()
 
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+find_package(Boost 1.55 REQUIRED COMPONENTS unit_test_framework)
+
 foreach(EXAMPLE_SOURCE ${EXAMPLE_SOURCES})
     get_filename_component(EXAMPLE_NAME ${EXAMPLE_SOURCE} NAME_WLE)
     MESSAGE(NOTICE "Found example " ${EXAMPLE_NAME})
 
     add_executable(${EXAMPLE_NAME} ${EXAMPLE_SOURCE})
+    target_include_directories(${EXAMPLE_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
+    target_link_libraries(${EXAMPLE_NAME} ${Boost_LIBRARIES})
     target_link_libraries(${EXAMPLE_NAME} ${LIBRARY_NAME} example_lib)
 endforeach()
-
-set(Boost_USE_STATIC_LIBS ON)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost 1.55 REQUIRED COMPONENTS unit_test_framework)
 
 foreach(TEST_SOURCE ${TEST_SOURCES})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WLE)
