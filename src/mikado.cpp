@@ -94,7 +94,7 @@ void mikado_sm::request_connect(const std::string& client)
 
 void mikado_sm::subscribe(const std::string topic)
 {
-    const auto msg = subscribe::Packet{1, topic}.to_span(conn.get_send_buf());
+    const auto msg = subscribe::Packet{(5 << 8) + 9, topic}.to_span(conn.get_send_buf());
     conn.send(msg);
     m_state = state_t::subscribe_requested;
 }

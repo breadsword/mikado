@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE( mikado_subscribe )
        '>',
         packet_type::subscribe | 0x2,
         8, //remaining length
-        0, 1, // packet identifier
+        5, 9, // packet identifier
         0, 3, // length of topic
         'a', '/', 'b', // topic_filter
         0 // QoS
