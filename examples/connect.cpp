@@ -66,11 +66,20 @@ std::array<m::byte, 258> recv_buf{0};
 
 gsl::span<const m::byte> recv_packet(Socket_connection& conn)
 {
-    const auto r = recv(conn.sock.s, &recv_buf[0], recv_buf.size(), 0);
+    // Receive header
+    const auto r = recv(conn.sock.s, &recv_buf[0], 2, 0);
     LOG << "recv r: " << r << endl;
-    // TODO: use receiver to complete packet
     m::receiver rec{recv_buf};
-    rec.advance(r);
+    rec.advance(2);
+
+    // receive rest of packet
+    while (rec.state() == m::receiver_state::msg_incomplete)
+    {
+        const auto r2 = recv(conn.sock.s, &recv_buf[2], recv_buf.size()-2, 0);
+        LOG << "recv r2: " << r2 << endl;
+        rec.advance(r2);
+    }
+
     if (rec.state() == m::receiver_state::msg_complete)
     {
         LOG << "received complete message" << endl;
