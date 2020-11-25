@@ -86,6 +86,7 @@ public:
 
     void process_packet(gsl::span<const byte> packet);
     void send_ping();
+    void send_disconnect();
 
     state_t state() const;
 

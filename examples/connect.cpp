@@ -143,18 +143,14 @@ int main(int argc, char **argv)
         LOG << "Received published message" << endl;
     }
 
-
-    // mi.loop();
-    // if (mi.has_received())
+    mi.send_ping();
+    mi.process_packet(recv_packet(conn));
+    if (mi.state() == m::state_t::connected)
     {
-        // output received message and topic
-
+        LOG << "Received ping response" << endl;
     }
 
-    // mi.disconnect();
-
-    // check for mikado's status and potential errors
-
+    mi.send_disconnect();
 
     return 0;
 }

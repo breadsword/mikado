@@ -60,6 +60,12 @@ struct packet_stream
 
 };
 
+gsl::span<byte> disconnect::Packet::to_span(gsl::span<byte> b)
+{
+    packet_stream s{packet_type::disconnect, b};
+    return s.content();
+}
+
 } // namespace mikado
 
 

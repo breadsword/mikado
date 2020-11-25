@@ -16,6 +16,7 @@ constexpr byte subscribe { 8 << 4};
 constexpr byte suback    { 9 << 4};
 constexpr byte pingreq   {12 << 4};
 constexpr byte pingresp  {13 << 4};
+constexpr byte disconnect{14 << 4};
 }; // namespace packet_type
 
 namespace connect {
@@ -143,6 +144,13 @@ struct Packet
 
 } // namespace pingreq
 
+namespace disconnect {
+struct Packet
+{
+    gsl::span<byte> to_span(gsl::span<byte>);
+};
+
+} // namespace mikado::disconnect
 
 } // namespace mikado
 

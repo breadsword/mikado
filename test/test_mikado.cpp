@@ -284,6 +284,28 @@ BOOST_AUTO_TEST_CASE( mikado_receive_pingresp )
     BOOST_CHECK(mi.state() == state_t::connected);
 }
 
+BOOST_AUTO_TEST_CASE( mikado_send_disconnect )
+{
+    connection_mock mock;
+    auto mi = mikado_sm{mock};
+    mi.request_connect("");
+    mi.process_packet(packet_connack);
+    BOOST_CHECK(mi.state() == state_t::connected);
+
+    const std::vector<byte> ref =
+    {
+        '>',
+        packet_type::disconnect,
+        0
+    };
+
+    mock.log.clear();
+    mi.send_disconnect();
+    BOOST_CHECK(mi.state() == state_t::disconnected);
+    BOOST_CHECK_EQUAL_COLLECTIONS(mock.log.begin(), mock.log.end(),
+                                  ref.begin(), ref.end());
+}
+
 BOOST_AUTO_TEST_CASE( receiver_len1 )
 {
     const byte msg[] = {42, 1, 4};

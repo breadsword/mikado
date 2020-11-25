@@ -135,6 +135,13 @@ void mikado_sm::send_ping()
     m_state = state_t::ping_await;
 }
 
+void mikado_sm::send_disconnect()
+{
+    const auto msg = disconnect::Packet{}.to_span(conn.get_send_buf());
+    conn.send(msg);
+    m_state = state_t::disconnected;
+}
+
 state_t mikado_sm::state() const
 {
     return m_state;
