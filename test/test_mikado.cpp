@@ -198,7 +198,7 @@ BOOST_AUTO_TEST_CASE( mikado_receive_publish )
 
     connection_mock mock;
     callback_mock callback_data;
-    auto mi = mikado_sm{mock, [&callback_data](auto t, auto p){callback_data(t, p);}};
+    auto mi = mikado_sm{mock, [&callback_data](mikado_sm::cbuf_t t, mikado_sm::cbuf_t p){callback_data(t, p);}};
 
     mi.request_connect("");
     mi.process_packet(packet_connack);
