@@ -2,22 +2,20 @@ cmake_minimum_required(VERSION 3.15)
 
 project (mikado)
 
-SET(CMAKE_CXX_STANDARD 14)
+SET(CMAKE_CXX_STANDARD 11)
 
 LIST(APPEND LIB_SOURCES
     include/mikado.h
     include/packets.h
-    include/properties.h
     include/utils.h
     include/vbi.h
     src/mikado.cpp
     src/packets.cpp
-    src/properties.cpp
     src/vbi.cpp
     )
 
 # Configure gsl-lite
-set( GSL_LITE_URL https://github.com/gsl-lite/gsl-lite.git )
+set( GSL_LITE_URL https://github.com/breadsword/gsl-lite.git )
 
 include( ExternalProject )
 find_package( Git REQUIRED )
@@ -49,7 +47,6 @@ target_compile_definitions( ${LIBRARY_NAME} PUBLIC gsl_CONFIG_DEFAULTS_VERSION=1
 LIST(APPEND TEST_SOURCES
     test/test_mikado.cpp
     test/test_vbi.cpp
-    test/test_properties.cpp
     )
 
 LIST(APPEND EXAMPLE_LIB_SOURCES

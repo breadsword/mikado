@@ -1,3 +1,4 @@
+#if 0
 #include "properties.h"
 
 using namespace mikado::properties;
@@ -44,3 +45,4 @@ std::unique_ptr<mikado::Property> mikado::get_prop(span_t s)
     }
 }
 
+#endif //0

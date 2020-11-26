@@ -1,3 +1,5 @@
+#if 0
+
 #ifndef MIKADO_PROPERTIES_H_INCLUDED
 #define MIKADO_PROPERTIES_H_INCLUDED
 
@@ -192,3 +194,4 @@ std::unique_ptr<Property> get_prop(span_t);
 }
 
 #endif //MIKADO_PROPERTIES_H_INCLUDED
+#endif //0
