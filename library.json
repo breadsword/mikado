@@ -1,0 +1,19 @@
+{
+    "name": "Mikado",
+    "version": "0.9",
+    "description": "MQTT 3.1.1 implementation",
+    "keywords": "mqtt",
+    "Repository": {
+        "type": "git",
+        "url": "https://github.com/breadsword/mikado.git"
+    },
+    "license": "LGPL-3.0-or-later",
+    "frameworks": "Arduino",
+    "platforms": "espressif8266",
+    "build": {},
+    "dependencies": [
+        {
+            "name": "gsl-lite"
+        }
+    ]
+}
