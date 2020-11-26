@@ -30,7 +30,7 @@ constexpr byte will_retain {1<< 5};
 
 constexpr byte will_QoS(unsigned q)
 {
-    gsl_Expects(q<3);
+    // gsl_Expects(q<3);
     return gsl::narrow_cast<byte>(q << 3);
 }
 
