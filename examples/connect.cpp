@@ -60,10 +60,7 @@ struct Socket_connection : public m::Connection
     std::array<m::byte, 258> send_buffer{0};
 };
 
-
-
 std::array<m::byte, 258> recv_buf{0};
-
 gsl::span<const m::byte> recv_packet(Socket_connection& conn)
 {
     // Receive header
@@ -73,6 +70,7 @@ gsl::span<const m::byte> recv_packet(Socket_connection& conn)
     rec.advance(2);
 
     // receive rest of packet
+    // FIXME: this will break if we need to read more than once!
     while (rec.state() == m::receiver_state::msg_incomplete)
     {
         const auto r2 = recv(conn.sock.s, &recv_buf[2], recv_buf.size()-2, 0);
