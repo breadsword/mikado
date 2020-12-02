@@ -306,10 +306,76 @@ BOOST_AUTO_TEST_CASE( mikado_send_disconnect )
                                   ref.begin(), ref.end());
 }
 
+
+struct fixed_source_conn{
+
+    typedef gsl::span<const byte> src_t;
+    typedef gsl::span<byte> target_t;
+
+    // TODO: make recv take a span instead
+    target_t::iterator recv(target_t::iterator t, size_t max_len)
+    {
+        auto copied = 0;
+        while (copied < max_len && curs != src.end())
+        {
+            *t = *curs;
+            t++;
+            curs++;
+            copied++;
+        }
+
+        return t;
+    }
+
+    target_t recv(target_t t)
+    {
+        target_t::iterator it = t.begin();
+        while (it != t.end() && curs != src.end())
+        {
+            *it = *curs;
+            ++it;
+            ++curs;
+        }
+
+        // span of received data
+        return gsl::make_span(t.begin(), it);
+    }
+
+    fixed_source_conn(src_t _src) : src{_src}
+    {}
+
+    const src_t src;
+    src_t::const_iterator curs=src.begin();
+
+};
+
+BOOST_AUTO_TEST_CASE( incremental_receiving )
+{
+
+    // byte 2 is remaining length
+    const byte input[] = {1, 3, 2, 4, 5};
+    fixed_source_conn conn{input};
+
+    std::array<byte, 10> buf {0x42};
+    receiver rec{buf};
+
+    decltype(buf)::iterator it = buf.begin();
+    while(rec)
+    {
+        it = conn.recv(it, rec.bytes_to_read());
+        BOOST_REQUIRE_NE(it, buf.begin());
+        rec.advance_until(it);
+        BOOST_CHECK_EQUAL_COLLECTIONS(&input[0], &input[it-buf.begin()],
+                buf.begin(), it);
+    }
+    BOOST_CHECK(rec.state() == receiver_state::msg_complete);
+
+}
+
 BOOST_AUTO_TEST_CASE( receiver_len1 )
 {
     const byte msg[] = {42, 1, 4};
-    receiver r(gsl::make_span(msg));
+    receiver r(msg);
 
     r.advance();
     BOOST_CHECK(r.state() == receiver_state::got_type);

@@ -10,8 +10,6 @@
 namespace mikado
 {
 
-    // namespace gsl = ::gsl_lite; // convenience alias
-
     enum class state_t
     {
         disconnected,
@@ -34,35 +32,49 @@ namespace mikado
     class receiver
     {
     public:
+        typedef gsl::span<const byte> cbuf_t;
+
         // buf is the complete range we could expect to read a message from
-        // start and end are cursors pointing to the start and end of the parsed
-        // packet
+        // start is the start of the parsed packet
+        // cursor is the position for the next byte to read
+        // read_until is how far to read in the next step. This is the end of the
+        // fixed heard (2 bytes) until msg_incomplete, where it becomes the end of
+        // the message.
+
         // We do not keep a separate marker for the beginning of the mqtt variable header,
         // as it is always start+2.
         // payload start (as beginning of packet payload) belongs into packet parser.
-        receiver(gsl::span<const byte> read_buffer) : buf{read_buffer}, start{std::begin(read_buffer)}, end{start}
+
+        receiver(cbuf_t read_buffer) : buf{read_buffer},
+                                       start{buf.begin()}, cursor{start}, read_until{start + 2}
         {
         }
+
+        // Packet parsing
         receiver_state state() const;
-
-        void put_byte(byte b);
-
         void advance();
         void advance(size_t count);
+        void advance_until(cbuf_t::iterator);
 
+        // Parse result
         byte msg_type() const;
+        cbuf_t content() const;
 
-        gsl::span<const byte> content() const;
+        void reset();
+
+        // Control over how much still to read
+        ptrdiff_t bytes_to_read() const;
+        explicit operator bool() const;
 
     private:
         receiver_state m_state = receiver_state::init;
+        cbuf_t buf;
 
-        byte m_msg_type;
-        uint8_t remaining_length;
+        // just a shorthand for buf.begin()
+        const cbuf_t::const_iterator start;
+        cbuf_t::const_iterator cursor, read_until;
 
-        gsl::span<const byte> buf;
-        const byte *start, *end = nullptr;
-
+        void consume_byte(byte b);
     }; // class receiver
 
     class Connection
@@ -96,6 +108,8 @@ namespace mikado
         void process_packet(cbuf_t packet);
         void send_ping();
         void send_disconnect();
+
+        void reset();
 
         state_t state() const;
 
