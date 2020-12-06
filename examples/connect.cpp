@@ -9,36 +9,6 @@
 
 namespace m = mikado;
 
-my_socket my_connect(const char* host, const char*service)
-{
-    // resolve host:service
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = PF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-
-    addr_info infos(host, service, &hints);
-    // try to connect to each in turn
-    for (auto res = infos.res0; res; res = res->ai_next) {
-
-        auto sock = my_socket{res->ai_family, res->ai_socktype,
-                res->ai_protocol};
-        if (sock.s < 0) {
-            continue;
-        }
-
-        const auto r = connect(sock.s, res->ai_addr, res->ai_addrlen);
-        if ( r < 0) {
-            LOG << "connect failed: " << strerror(errno) << endl;
-            continue;
-        }
-
-        return sock;
-    }
-
-    throw(std::runtime_error("Could not connect with any address."));
-    return my_socket(-1);
-}
 
 struct Socket_connection : public m::Connection, m::Packet_reader::Receiving_Connection
 {
@@ -99,7 +69,7 @@ int main(int argc, char **argv)
 {
     // create socket to connect to mqtt broker
     // construct a connection object
-    Socket_connection conn{my_connect("localhost", "1883")};
+    Socket_connection conn{tcp_connect("localhost", "1883")};
 
     // construct a mikado
     auto mi = mikado::mikado_sm{conn, logging_cb};
