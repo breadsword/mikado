@@ -15,7 +15,6 @@ struct Socket_connection : public m::Connection, m::Packet_reader::Receiving_Con
     Socket_connection(my_socket&& _sock) : sock{std::move(_sock)}
     {}
 
-
     virtual int send(m::cbuf_t msg) override
     {
         LOG << "Sending " << msg.size_bytes() << " bytes." << endl;
@@ -34,12 +33,12 @@ struct Socket_connection : public m::Connection, m::Packet_reader::Receiving_Con
         return send_buffer;
     }
     std::array<m::byte, 258> send_buffer{0};
+    std::array<m::byte, 258> recv_buf{0};
 };
 
-std::array<m::byte, 258> recv_buf{0};
 m::cbuf_t recv_packet(Socket_connection& conn)
 {
-    m::Packet_reader reader{conn, recv_buf};
+    m::Packet_reader reader{conn, conn.recv_buf};
     m::read_result ret;
     do{
         ret = reader.read_packet();
