@@ -35,57 +35,49 @@ my_socket my_connect(const char* host, const char*service)
 
         return sock;
     }
+
     throw(std::runtime_error("Could not connect with any address."));
     return my_socket(-1);
 }
 
-struct Socket_connection : public m::Connection
+struct Socket_connection : public m::Connection, m::Packet_reader::Receiving_Connection
 {
     Socket_connection(my_socket&& _sock) : sock{std::move(_sock)}
     {}
 
 
-    virtual gsl::span<m::byte> get_send_buf() override
-    {
-        return send_buffer;
-    }
-
-    virtual int send(gsl::span<const m::byte> msg) override
+    virtual int send(m::cbuf_t msg) override
     {
         LOG << "Sending " << msg.size_bytes() << " bytes." << endl;
         return ::send(sock.s, msg.data(), msg.size_bytes(), 0);
     }
 
+    virtual int read(m::buf_t b) override
+    {
+        return ::recv(sock.s, b.data(), b.size_bytes(), 0);
+    }
+
     my_socket sock;
+
+    virtual m::buf_t get_send_buf() override
+    {
+        return send_buffer;
+    }
     std::array<m::byte, 258> send_buffer{0};
 };
 
 std::array<m::byte, 258> recv_buf{0};
-gsl::span<const m::byte> recv_packet(Socket_connection& conn)
+m::cbuf_t recv_packet(Socket_connection& conn)
 {
-    // Receive header
-    const auto r = recv(conn.sock.s, &recv_buf[0], 2, 0);
-    LOG << "recv r: " << r << endl;
-    m::receiver rec{recv_buf};
-    rec.advance(2);
-
-    // receive rest of packet
-    // FIXME: this will break if we need to read more than once!
-    while (rec.state() == m::receiver_state::msg_incomplete)
-    {
-        const auto r2 = recv(conn.sock.s, &recv_buf[2], recv_buf.size()-2, 0);
-        LOG << "recv r2: " << r2 << endl;
-        rec.advance(r2);
-    }
-
-    if (rec.state() == m::receiver_state::msg_complete)
-    {
-        LOG << "received complete message" << endl;
-    }
-    return rec.content();
+    m::Packet_reader reader{conn, recv_buf};
+    m::read_result ret;
+    do{
+        ret = reader.read_packet();
+    }while(ret == m::read_result::more_to_read);
+    return reader.content();
 }
 
-std::ostream& operator<< (std::ostream& os, gsl::span<const m::byte> s)
+std::ostream& operator<< (std::ostream& os, m::cbuf_t s)
 {
     boost::io::ios_all_saver ifs(os);
     for (const auto c : s)
@@ -95,7 +87,7 @@ std::ostream& operator<< (std::ostream& os, gsl::span<const m::byte> s)
     return os;
 }
 
-void logging_cb(gsl::span<const m::byte> t, gsl::span<const m::byte> v)
+void logging_cb(m::cbuf_t t, m::cbuf_t v)
 {
     LOG << "Callback called. "
         << "Topic: " << t
@@ -132,15 +124,11 @@ int main(int argc, char **argv)
         LOG << "Subscribe successful" << endl;
     }
 
-    const unsigned char topic[] = "/testpublish";
-    auto t_span = gsl::span<const m::byte>(topic, sizeof(topic)-1);
-    const unsigned char value[] = "value";
-    auto v_span = gsl::span<const m::byte>(value, sizeof(value)-1);
-    mi.publish(t_span, v_span);
+    mi.publish("/testpublish", "value");
     LOG << "published message" << endl;
     if (mi.state() == m::state_t::connected)
     {
-        LOG << "Published. Mikado_sm is connected." << endl;
+        LOG << "Published. Mikado_sm remains connected." << endl;
     }
 
     LOG << "waiting for publish" << endl;
