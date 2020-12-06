@@ -221,9 +221,10 @@ BOOST_AUTO_TEST_CASE( mikado_send_publish )
     BOOST_CHECK(mi.state() == state_t::connected);
 
     mock.log.clear();
-    const std::vector<byte> t = {'a','/','b'};
+    // const std::vector<byte> t = {'a','/','b'};
+    const unsigned char t[]{"a/b"};
     const std::vector<byte> p = {'t', 'h', 'i', 's'};
-    mi.publish(t, p);
+    mi.publish("a/b", "this");
     BOOST_CHECK(mi.state() == state_t::connected);
 
     const std::vector<byte> ref =
@@ -397,3 +398,13 @@ BOOST_AUTO_TEST_CASE( receiver_len0 )
     BOOST_CHECK(r.state() == receiver_state::msg_complete);
 }
 
+
+//BOOST_AUTO_TEST_CASE( receiver_partial_packet )
+//{
+//    receiver r{mock};
+
+//    auto ret = r.read_packet();
+//    BOOST_CHECK(ret == MORE_TO_READ);
+
+
+//}

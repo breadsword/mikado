@@ -102,6 +102,8 @@ namespace mikado
 
         void request_connect(const std::string &clientID);
         void subscribe(const std::string topic);
+        void publish(const std::string& topic, const std::string& payload,
+                     bool retain = false);
         void publish(cbuf_t topic, cbuf_t payload,
                      bool retain = false);
 

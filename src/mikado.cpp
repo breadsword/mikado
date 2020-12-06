@@ -126,6 +126,14 @@ void mikado_sm::subscribe(const std::string topic)
     m_state = state_t::subscribe_requested;
 }
 
+void mikado_sm::publish(const std::string &topic, const std::string &payload,
+                        bool retain)
+{
+    publish(cbuf_t(reinterpret_cast<const byte *>(topic.data()), topic.length()),
+            cbuf_t(reinterpret_cast<const byte *>(payload.data()), payload.length())
+            );
+}
+
 void mikado_sm::publish(gsl::span<const byte> topic, gsl::span<const byte> payload, bool retain)
 {
     const auto msg = publish::Packet{topic, payload}.to_span(conn.get_send_buf());
