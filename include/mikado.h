@@ -5,11 +5,9 @@
 
 #include <packets.h>
 #include <utils.h>
-#include <vbi.h>
 
 namespace mikado
 {
-
 typedef gsl::span<const byte> cbuf_t;
 typedef gsl::span<byte> buf_t;
 
@@ -33,26 +31,28 @@ enum class receiver_state
     error
 };
 
+/// This is kind of a packet lexer, allowing to receive complete packets out of
+/// bytes received. When a packet is complete, access it using content().
+///
+/// buf is the complete range we could expect to read a message from. When we
+/// start parsing, buf does not need to be filled with a complete packet yet.
+///
+/// start is the start of the parsed packet
+/// cursor is the position for the next byte to read
+/// read_until is how far to read in the next step. This is the end of the
+/// fixed heard (2 bytes) until msg_incomplete, where it becomes the end of
+/// the message.
+///
+/// We do not keep a separate marker for the beginning of the mqtt variable
+/// header, as it is always start+2.
+/// Payload start (as beginning of packet payload) belongs into packet parser
+/// (part of mikado_sm), if ever needed.
 class receiver
 {
 public:
-
-    // buf is the complete range we could expect to read a message from
-    // start is the start of the parsed packet
-    // cursor is the position for the next byte to read
-    // read_until is how far to read in the next step. This is the end of the
-    // fixed heard (2 bytes) until msg_incomplete, where it becomes the end of
-    // the message.
-
-    // We do not keep a separate marker for the beginning of the mqtt variable header,
-    // as it is always start+2.
-    // payload start (as beginning of packet payload) belongs into packet parser.
-
     receiver(cbuf_t read_buffer) : buf{read_buffer},
         start{buf.begin()}, cursor{start}, read_until{start + 2}
-    {
-    }
-
+    {}
 
     // Packet parsing
     receiver_state state() const;
@@ -88,13 +88,12 @@ enum class read_result
     read_error
 };
 
-
+/// Logic to drive a receiver with incremental reading.
 class Packet_reader{
 public:
     struct Receiving_Connection{
         virtual int read(buf_t) = 0;
     };
-
 
     Packet_reader(Receiving_Connection& _conn, buf_t _read_buffer) :
         conn{_conn}, read_buffer{_read_buffer}, cursor{read_buffer.begin()},
@@ -109,26 +108,32 @@ private:
     buf_t read_buffer;
     buf_t::iterator cursor;
     receiver rec;
-
 };
 
 
 class Connection
 {
 public:
-    virtual int send(gsl::span<const byte>) = 0;
-    // TODO: This does not make sense. If the Connection knows, where the send_buf
-    // is, I do not need to pass it to send()
+    /// Return a buffer where clients can place data to be sent.
+    ///
+    /// In the send() call we usually pass a span into this buffer, but need to
+    /// pass it, in order to signal how much of the output buffer to actually
+    /// send.
     virtual gsl::span<byte> get_send_buf() = 0;
+
+    virtual int send(gsl::span<const byte>) = 0;
 };
 
 typedef std::function<void(gsl::span<const byte>, gsl::span<const byte>)> callback_t;
 
-// TODO: check, if mikado is actually a sender (mirrored to above receiver class)
-// mikado will place the respective packet to send in send_buf, but will not do the sending.
-// expecting the buffer to be random accessible, contiguous memory should not be too limiting.
-//
-// The state has to assume that sending has succeeded after we place it in the send_buf
+/// MQTT state machine.
+///
+/// Has two ways of getting messages: calling functions causing a send() on its
+/// connection or reacting on an incoming packet when process_packet() is called.
+///
+/// Has two ways of causing actions: when a packet is to be sent, it will do it
+/// by conn.send(). When a publish() packet is processed, it will call the
+/// callback cb.
 class mikado_sm
 {
 public:
@@ -163,6 +168,8 @@ private:
     void process_packet_subscribe_requested(cbuf_t packet_buf);
     void process_packet_connected(cbuf_t packet_buf);
     void process_packet_ping_await(cbuf_t packet_buf);
+
+    /// factored out function to deal with publish, used in several states
     bool handle_publish(cbuf_t packet_buf);
 };
 
