@@ -14,10 +14,9 @@ struct simple_connection_mock : public Connection
         return -1;
     }
 
-    std::array<byte, 256> send_buf;
     virtual gsl::span<byte> get_send_buf() override
     {
-        return send_buf;
+        return gsl::span<byte>();
     }
 };
 
@@ -44,8 +43,7 @@ struct connection_mock : public Connection
     size_t sent_packet_count = 0;
 
     connection_mock()
-    {
-    }
+    {}
 
     /// Return number of bytes sent, <0 on error
     virtual int send(gsl::span<const unsigned char> buf) override
@@ -57,28 +55,6 @@ struct connection_mock : public Connection
         return buf.size();
     }
 
-    /// Return number of bytes received, <0 on error
-    int recv(gsl::span<unsigned char> buf)
-    {
-        // don't recv() anything
-        log.push_back('<');
-
-        static constexpr byte connack_response[] =
-        {
-            packet_type::connack, 7,
-            0, // cannack flags: no session present
-            0, // connack reason code: 0 - success
-            4 ,// connack property length
-            0x24, 0, // propetry: maximum QoS 0
-            0x25, 0 // property: no retain available
-        };
-
-        const auto incr = copy(std::begin(connack_response), std::end(connack_response),
-                               buf.begin(), buf.end());
-        std::copy_n(std::begin(connack_response), incr, std::back_inserter(log));
-
-        return incr;
-    }
 };
 
 BOOST_AUTO_TEST_CASE ( mikado_connect_request )
@@ -191,24 +167,22 @@ struct callback_mock{
     }
 };
 
-
-
 BOOST_AUTO_TEST_CASE( mikado_receive_publish )
 {
-
     connection_mock mock;
     callback_mock callback_data;
-    auto mi = mikado_sm{mock, [&callback_data](cbuf_t t, cbuf_t p){callback_data(t, p);}};
+    auto cb = [&callback_data](cbuf_t t, cbuf_t p){callback_data(t, p);};
+    auto mi = mikado_sm{mock,cb};
 
-mi.request_connect("");
-mi.process_packet(packet_connack);
-BOOST_CHECK(mi.state() == state_t::connected);
+    mi.request_connect("");
+    mi.process_packet(packet_connack);
+    BOOST_CHECK(mi.state() == state_t::connected);
 
-mi.process_packet(packet_publish);
-BOOST_CHECK(mi.state() == state_t::connected);
-BOOST_CHECK(callback_data.called);
-BOOST_CHECK_EQUAL(callback_data.topic, "a/b");
-BOOST_CHECK_EQUAL(callback_data.payload, "Hello");
+    mi.process_packet(packet_publish);
+    BOOST_CHECK(mi.state() == state_t::connected);
+    BOOST_CHECK(callback_data.called);
+    BOOST_CHECK_EQUAL(callback_data.topic, "a/b");
+    BOOST_CHECK_EQUAL(callback_data.payload, "Hello");
 }
 
 BOOST_AUTO_TEST_CASE( mikado_send_publish )
