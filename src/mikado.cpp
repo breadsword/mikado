@@ -318,4 +318,35 @@ void mikado_sm::process_packet_ping_await(gsl::span<const byte> packet_buf)
     }
 }
 
+read_result Packet_reader::read_packet()
+{
+    const auto r = conn.read(
+                buf_t{cursor, static_cast<unsigned long>(rec.bytes_to_read())});
+    if (r > 0)
+    {
+        cursor += r;
+        rec.advance_until(cursor);
+    }
+    else
+    {
+        return read_result::read_error;
+    }
+
+    if (rec.state() == receiver_state::msg_complete)
+    {
+        cursor = read_buffer.begin();
+        return read_result::success;
+    }
+    else
+    {
+        return read_result::more_to_read;
+    }
+
+}
+
+cbuf_t Packet_reader::content() const
+{
+    return rec.content();
+}
+
 }; // namespace mikado

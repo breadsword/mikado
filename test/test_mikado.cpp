@@ -74,7 +74,7 @@ struct connection_mock : public Connection
         };
 
         const auto incr = copy(std::begin(connack_response), std::end(connack_response),
-                                  buf.begin(), buf.end());
+                               buf.begin(), buf.end());
         std::copy_n(std::begin(connack_response), incr, std::back_inserter(log));
 
         return incr;
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE( mikado_subscribe )
     mi.subscribe("a/b");
 
     const std::vector<unsigned char> ref = {
-       '>',
+        '>',
         packet_type::subscribe | 0x2,
         8, //remaining length
         5, 9, // packet identifier
@@ -198,17 +198,17 @@ BOOST_AUTO_TEST_CASE( mikado_receive_publish )
 
     connection_mock mock;
     callback_mock callback_data;
-    auto mi = mikado_sm{mock, [&callback_data](mikado_sm::cbuf_t t, mikado_sm::cbuf_t p){callback_data(t, p);}};
+    auto mi = mikado_sm{mock, [&callback_data](cbuf_t t, cbuf_t p){callback_data(t, p);}};
 
-    mi.request_connect("");
-    mi.process_packet(packet_connack);
-    BOOST_CHECK(mi.state() == state_t::connected);
+mi.request_connect("");
+mi.process_packet(packet_connack);
+BOOST_CHECK(mi.state() == state_t::connected);
 
-    mi.process_packet(packet_publish);
-    BOOST_CHECK(mi.state() == state_t::connected);
-    BOOST_CHECK(callback_data.called);
-    BOOST_CHECK_EQUAL(callback_data.topic, "a/b");
-    BOOST_CHECK_EQUAL(callback_data.payload, "Hello");
+mi.process_packet(packet_publish);
+BOOST_CHECK(mi.state() == state_t::connected);
+BOOST_CHECK(callback_data.called);
+BOOST_CHECK_EQUAL(callback_data.topic, "a/b");
+BOOST_CHECK_EQUAL(callback_data.payload, "Hello");
 }
 
 BOOST_AUTO_TEST_CASE( mikado_send_publish )
@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE( mikado_send_ping )
 const std::vector<byte> packet_pingresp
 {
     packet_type::pingresp,
-    0
+            0
 };
 
 BOOST_AUTO_TEST_CASE( mikado_receive_pingresp )
@@ -308,66 +308,18 @@ BOOST_AUTO_TEST_CASE( mikado_send_disconnect )
 }
 
 
-struct fixed_source_conn{
-
-    typedef gsl::span<const byte> src_t;
-    typedef gsl::span<byte> target_t;
-
-    // TODO: make recv take a span instead
-    target_t::iterator recv(target_t::iterator t, size_t max_len)
-    {
-        auto copied = 0;
-        while (copied < max_len && curs != src.end())
-        {
-            *t = *curs;
-            t++;
-            curs++;
-            copied++;
-        }
-
-        return t;
-    }
-
-    target_t recv(target_t t)
-    {
-        target_t::iterator it = t.begin();
-        while (it != t.end() && curs != src.end())
-        {
-            *it = *curs;
-            ++it;
-            ++curs;
-        }
-
-        // span of received data
-        return gsl::make_span(t.begin(), it);
-    }
-
-    fixed_source_conn(src_t _src) : src{_src}
-    {}
-
-    const src_t src;
-    src_t::const_iterator curs=src.begin();
-
-};
-
-BOOST_AUTO_TEST_CASE( incremental_receiving )
+BOOST_AUTO_TEST_CASE( incremental_lexing )
 {
 
     // byte 2 is remaining length
     const byte input[] = {1, 3, 2, 4, 5};
-    fixed_source_conn conn{input};
+    const byte *it = &input[0];
+    receiver rec{input};
 
-    std::array<byte, 10> buf {0x42};
-    receiver rec{buf};
-
-    decltype(buf)::iterator it = buf.begin();
     while(rec)
     {
-        it = conn.recv(it, rec.bytes_to_read());
-        BOOST_REQUIRE_NE(it, buf.begin());
+        it  += rec.bytes_to_read();
         rec.advance_until(it);
-        BOOST_CHECK_EQUAL_COLLECTIONS(&input[0], &input[it-buf.begin()],
-                buf.begin(), it);
     }
     BOOST_CHECK(rec.state() == receiver_state::msg_complete);
 
@@ -399,12 +351,68 @@ BOOST_AUTO_TEST_CASE( receiver_len0 )
 }
 
 
-//BOOST_AUTO_TEST_CASE( receiver_partial_packet )
-//{
-//    receiver r{mock};
+struct Receiving_connection_mock : public Packet_reader::Receiving_Connection
+{
+    virtual int read(buf_t b) override
+    {
+        switch (pass)
+        {
+        case 0:
+            // place stuff in b
+            ++pass;
+            return copy(p.begin(), p.begin()+2, b.begin(), b.end());
 
-//    auto ret = r.read_packet();
-//    BOOST_CHECK(ret == MORE_TO_READ);
+            break;
+        case 1:
+            // return content
+            ++pass;
+            return copy (p.begin()+2, p.end(), b.begin(), b.end());
+            break;
+        case 2:
+            return 0;
+        case 3:
+            return -1;
+        }
 
+        return -1;
+    }
 
-//}
+    const std::vector<byte> p =
+    {
+        0, 3,
+        1, 2, 5
+    };
+
+    int pass = 0;
+
+};
+
+BOOST_AUTO_TEST_CASE( receiver_partial_packet )
+{
+    Receiving_connection_mock mock;
+    std::array<byte, 258> buf;
+    Packet_reader r{mock, buf};
+
+    auto ret = r.read_packet();
+    BOOST_CHECK(ret == read_result::more_to_read);
+    ret = r.read_packet();
+    BOOST_CHECK(ret == read_result::success);
+
+    const auto p = r.content();
+    BOOST_CHECK_EQUAL_COLLECTIONS(
+                mock.p.begin(), mock.p.end(),
+                p.begin(), p.end());
+}
+
+BOOST_AUTO_TEST_CASE( receiver_packet_loop )
+{
+    Receiving_connection_mock mock;
+    std::array<byte, 258> buf;
+    Packet_reader r{mock, buf};
+
+    read_result ret;
+    do{
+        ret = r.read_packet();
+    }while(ret == read_result::more_to_read);
+    BOOST_CHECK(ret == read_result::success);
+}
