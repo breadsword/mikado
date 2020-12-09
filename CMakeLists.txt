@@ -53,12 +53,17 @@ LIST(APPEND EXAMPLE_LIB_SOURCES
     examples/log.h
     examples/net_util.h
     examples/net_util.cpp
+    examples/mikado_util.h
+    examples/mikado_util.cpp
     )
 
 add_library(example_lib ${EXAMPLE_LIB_SOURCES})
+target_link_libraries(example_lib ${LIBRARY_NAME})
 
 LIST(APPEND EXAMPLE_SOURCES
     examples/connect.cpp
+    examples/sub_and_log.cpp
+    examples/sub2.cpp
     )
 
 ENABLE_TESTING()
