@@ -1,4 +1,5 @@
 #include "mikado.h"
+#include "mikado_util.h"
 
 #include <boost/io/ios_state.hpp>
 
@@ -8,43 +9,6 @@
 #include "log.h"
 
 namespace m = mikado;
-
-
-struct Socket_connection : public m::Connection, m::Packet_reader::Receiving_Connection
-{
-    Socket_connection(my_socket&& _sock) : sock{std::move(_sock)}
-    {}
-
-    virtual int send(m::cbuf_t msg) override
-    {
-        LOG << "Sending " << msg.size_bytes() << " bytes." << endl;
-        return ::send(sock.s, msg.data(), msg.size_bytes(), 0);
-    }
-
-    virtual int read(m::buf_t b) override
-    {
-        return ::recv(sock.s, b.data(), b.size_bytes(), 0);
-    }
-
-    my_socket sock;
-
-    virtual m::buf_t get_send_buf() override
-    {
-        return send_buffer;
-    }
-    std::array<m::byte, 258> send_buffer{0};
-    std::array<m::byte, 258> recv_buf{0};
-};
-
-m::cbuf_t recv_packet(Socket_connection& conn)
-{
-    m::Packet_reader reader{conn, conn.recv_buf};
-    m::read_result ret;
-    do{
-        ret = reader.read_packet();
-    }while(ret == m::read_result::more_to_read);
-    return reader.content();
-}
 
 std::ostream& operator<< (std::ostream& os, m::cbuf_t s)
 {
