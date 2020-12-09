@@ -27,6 +27,7 @@ my_socket::my_socket(int sock_fd) :  s{sock_fd}
 
 my_socket::my_socket(my_socket &&other) : s(-1)
 {
+    LOG << "Moving my_socket" << endl;
     std::swap(s, other.s);
 }
 
