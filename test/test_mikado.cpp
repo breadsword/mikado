@@ -421,9 +421,9 @@ BOOST_AUTO_TEST_CASE( receive_multiple_packets )
     std::array<byte, 1024> read_buf{0x42};
 
 
+    Packet_reader reader{mock, read_buf};
     for (int i=0; i<2; ++i)
     {
-        Packet_reader reader{mock, read_buf};
         read_result ret;
 
         do{
@@ -431,6 +431,9 @@ BOOST_AUTO_TEST_CASE( receive_multiple_packets )
         }
         while (ret == read_result::more_to_read);
         BOOST_CHECK(ret == read_result::success);
+        const auto p = reader.content();
+
+        reader.reset();
     }
 
 }

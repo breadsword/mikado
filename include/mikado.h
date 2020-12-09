@@ -103,6 +103,8 @@ public:
     read_result read_packet();
     cbuf_t content() const;
 
+    void reset();
+
 private:
     Receiving_Connection& conn;
     buf_t read_buffer;

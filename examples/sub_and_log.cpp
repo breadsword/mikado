@@ -60,6 +60,7 @@ struct execution_context{
         {
             mi.process_packet(reader.content());
             last_read = now;
+            reader.reset();
         }
         if (ret == m::read_result::read_error)
         {

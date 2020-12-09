@@ -355,4 +355,10 @@ cbuf_t Packet_reader::content() const
     return rec.content();
 }
 
+void Packet_reader::reset()
+{
+    cursor = read_buffer.begin();
+    rec.reset();
+}
+
 }; // namespace mikado
