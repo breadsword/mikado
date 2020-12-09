@@ -327,6 +327,12 @@ read_result Packet_reader::read_packet()
         cursor += r;
         rec.advance_until(cursor);
     }
+#ifdef errno
+    else if ((r < 0) && (errno == EAGAIN))
+    {
+        return read_result::more_to_read;
+    }
+#endif
     else
     {
         return read_result::read_error;
