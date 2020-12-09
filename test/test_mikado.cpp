@@ -390,3 +390,47 @@ BOOST_AUTO_TEST_CASE( receiver_packet_loop )
     }while(ret == read_result::more_to_read);
     BOOST_CHECK(ret == read_result::success);
 }
+
+struct Receiving_connection_mock2 : public Packet_reader::Receiving_Connection
+{
+    virtual int read(buf_t b) override
+    {
+        if (b.size() == 0)
+        {
+            BOOST_FAIL("read called with 0 bytes buffer.");
+            return -1;
+        }
+
+        const auto incr = copy(cursor, data.end(), b.begin(), b.end());
+        cursor += incr;
+        return incr;
+    }
+
+    std::vector<byte> data =
+    {
+        0, 2, 1, 1,
+        1, 3, 2, 2, 2
+    };
+    decltype(data)::iterator cursor = data.begin();
+};
+
+BOOST_AUTO_TEST_CASE( receive_multiple_packets )
+{
+    Receiving_connection_mock2 mock;
+
+    std::array<byte, 1024> read_buf{0x42};
+
+
+    for (int i=0; i<2; ++i)
+    {
+        Packet_reader reader{mock, read_buf};
+        read_result ret;
+
+        do{
+            ret = reader.read_packet();
+        }
+        while (ret == read_result::more_to_read);
+        BOOST_CHECK(ret == read_result::success);
+    }
+
+}
