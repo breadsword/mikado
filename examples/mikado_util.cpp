@@ -20,14 +20,20 @@ int Socket_connection::read(mikado::buf_t b)
     auto p = b.data();
     auto len = b.size_bytes();
     const auto r = ::recv(sock.s, p, len, 0);
+    if (r > 0)
+    {
+        return r;
+    }
+    if (r < 0 && errno == EAGAIN)
+    {
+        return 0;
+    }
     if (r == 0)
     {
         LOG << "Peer closed connection." << endl;
+        return -1;
     }
-    else if (r < 0 && errno != EAGAIN)
-    {
-        LOG << "during read: " << strerror(errno) << endl;
-    }
+    LOG << "during read: " << strerror(errno) << endl;
     return r;
 }
 

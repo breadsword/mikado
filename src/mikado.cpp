@@ -66,7 +66,7 @@ void receiver::advance()
 
 void receiver::advance(size_t count)
 {
-    for (auto r = 0; r < count; ++r)
+    for (size_t r = 0; r < count; ++r)
     {
         advance();
     }
@@ -74,7 +74,7 @@ void receiver::advance(size_t count)
 
 void receiver::advance_until(cbuf_t::iterator target)
 {
-    while( (cursor < target) && (m_state != receiver_state::error) )
+    while ((cursor < target) && (m_state != receiver_state::error))
     {
         advance();
     }
@@ -89,7 +89,7 @@ void receiver::reset()
 {
     m_state = receiver_state::init;
     cursor = start;
-    read_until = start +2;
+    read_until = start + 2;
 }
 
 ptrdiff_t receiver::bytes_to_read() const
@@ -130,8 +130,7 @@ void mikado_sm::publish(const std::string &topic, const std::string &payload,
                         bool retain)
 {
     publish(cbuf_t(reinterpret_cast<const byte *>(topic.data()), topic.length()),
-            cbuf_t(reinterpret_cast<const byte *>(payload.data()), payload.length())
-            );
+            cbuf_t(reinterpret_cast<const byte *>(payload.data()), payload.length()));
 }
 
 void mikado_sm::publish(gsl::span<const byte> topic, gsl::span<const byte> payload, bool retain)
@@ -322,32 +321,26 @@ read_result Packet_reader::read_packet()
 {
     const auto r = conn.read(
                 buf_t{cursor, static_cast<unsigned long>(rec.bytes_to_read())});
-    if (r > 0)
-    {
-        cursor += r;
-        rec.advance_until(cursor);
-    }
-#ifdef errno
-    else if ((r < 0) && (errno == EAGAIN))
-    {
-        return read_result::more_to_read;
-    }
-#endif
-    else
+    if (r < 0)
     {
         return read_result::read_error;
     }
 
+    // if r > 0 -> we have read something and we're okay
+    // if r ==0 -> timeout, we still can continue scanning and check the
+    // state of rec
+
+    cursor += r;
+    rec.advance_until(cursor);
+
     if (rec.state() == receiver_state::msg_complete)
     {
-        cursor = read_buffer.begin();
         return read_result::success;
     }
     else
     {
         return read_result::more_to_read;
     }
-
 }
 
 cbuf_t Packet_reader::content() const
