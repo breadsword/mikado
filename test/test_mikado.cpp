@@ -185,6 +185,33 @@ BOOST_AUTO_TEST_CASE( mikado_receive_publish )
     BOOST_CHECK_EQUAL(callback_data.payload, "Hello");
 }
 
+BOOST_AUTO_TEST_CASE( mikado_receive_publish_no_payload )
+{
+    const std::vector<byte> packet_publish
+    {
+        packet_type::publish | 0, // DUP false, QoS 0, Retain false
+        5,
+        0, 3, 'a', '/', 'b' // topic
+                // no payload
+    };
+
+    connection_mock mock;
+    callback_mock callback_data;
+    auto cb = [&callback_data](cbuf_t t, cbuf_t p){callback_data(t, p);};
+    auto mi = mikado_sm{mock,cb};
+
+    mi.request_connect("");
+    mi.process_packet(packet_connack);
+    BOOST_CHECK(mi.state() == state_t::connected);
+
+    mi.process_packet(packet_publish);
+    BOOST_CHECK(mi.state() == state_t::connected);
+    BOOST_CHECK(callback_data.called);
+    BOOST_CHECK_EQUAL(callback_data.topic, "a/b");
+    BOOST_CHECK_EQUAL(callback_data.payload, "");
+
+}
+
 BOOST_AUTO_TEST_CASE( mikado_send_publish )
 {
     connection_mock mock;

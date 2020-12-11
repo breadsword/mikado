@@ -202,7 +202,7 @@ bool mikado::publish::Packet::from_span(gsl::span<const mikado::byte> d)
 
     uint16_t topic_length = d[2]*256 + d[3];
     topic = gsl::make_span(&d[4], topic_length);
-    const auto payload_start = &d[topic_length+4];
+    const auto payload_start = &d[4] + topic_length;
     payload = gsl::make_span(payload_start, std::end(d));
     return true;
 }
