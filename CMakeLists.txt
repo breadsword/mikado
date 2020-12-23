@@ -40,8 +40,8 @@ target_include_directories( gsl INTERFACE ${GSL_LITE_INCLUDE_DIR} )
 
 SET (LIBRARY_NAME ${PROJECT_NAME})
 add_library(${LIBRARY_NAME} ${LIB_SOURCES})
-target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries( ${LIBRARY_NAME} PUBLIC gsl )
+add_dependencies(${LIBRARY_NAME} gsl-extern)
+target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${GSL_LITE_INCLUDE_DIR})
 target_compile_definitions( ${LIBRARY_NAME} PUBLIC gsl_CONFIG_DEFAULTS_VERSION=1)
 
 LIST(APPEND TEST_SOURCES
