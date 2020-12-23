@@ -176,6 +176,11 @@ void mikado_sm::send_disconnect()
     m_state = state_t::disconnected;
 }
 
+void mikado_sm::set_callback(callback_t _cb)
+{
+    cb = _cb;
+}
+
 void mikado_sm::reset()
 {
     m_state = state_t::disconnected;
@@ -235,10 +240,8 @@ void mikado_sm::process_packet_subscribe_requested(gsl::span<const byte> packet_
         break;
     case packet_type::publish:
     {
-        if (handle_publish(packet_buf))
-        {
-        }
-        else
+        const auto r = handle_publish(packet_buf);
+        if(!r)
         {
             m_state = state_t::error;
         }

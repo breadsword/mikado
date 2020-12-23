@@ -212,6 +212,57 @@ BOOST_AUTO_TEST_CASE( mikado_receive_publish_no_payload )
 
 }
 
+BOOST_AUTO_TEST_CASE( mikado_set_callback )
+{
+    connection_mock mock;
+    // create without callback
+    auto mi = mikado_sm{mock};
+
+    mi.request_connect("");
+    mi.process_packet(packet_connack);
+    BOOST_CHECK(mi.state() == state_t::connected);
+
+    mi.process_packet(packet_publish);
+    BOOST_CHECK(mi.state() == state_t::connected);
+
+    callback_mock callback_data;
+    auto cb = [&callback_data](cbuf_t t, cbuf_t p){callback_data(t, p);};
+    BOOST_CHECK(!callback_data.called);
+
+    mi.set_callback(cb);
+    mi.process_packet(packet_publish);
+    BOOST_CHECK(mi.state() == state_t::connected);
+    BOOST_CHECK(callback_data.called);
+    BOOST_CHECK_EQUAL(callback_data.topic, "a/b");
+    BOOST_CHECK_EQUAL(callback_data.payload, "Hello");
+}
+
+BOOST_AUTO_TEST_CASE( mikado_callback_calls_publish )
+{
+    connection_mock mock;
+    auto mi = mikado_sm{mock};
+    bool called = false;
+    auto cb = [&mi, &called](cbuf_t t, cbuf_t v){mi.publish(t, v); called = true;};
+    mi.set_callback(cb);
+
+    mi.request_connect("");
+    mi.process_packet(packet_connack);
+    BOOST_CHECK(mi.state() == state_t::connected);
+
+    mock.sent_packet_count = 0;
+    mock.log.clear();
+    mi.process_packet(packet_publish);
+    // now, the callback is called, which in turn sends back the packet
+    // mikado_sm should not be confused by this
+    BOOST_CHECK(mi.state() == state_t::connected);
+
+    BOOST_CHECK(called);
+    BOOST_CHECK_EQUAL(mock.sent_packet_count, 1);
+    // The echo'd packet is in mock.log, after the initial '>'
+    BOOST_CHECK_EQUAL_COLLECTIONS(packet_publish.begin(), packet_publish.end(),
+                                  mock.log.begin()+1, mock.log.end());
+}
+
 BOOST_AUTO_TEST_CASE( mikado_send_publish )
 {
     connection_mock mock;
@@ -223,8 +274,8 @@ BOOST_AUTO_TEST_CASE( mikado_send_publish )
 
     mock.log.clear();
     // const std::vector<byte> t = {'a','/','b'};
-    const unsigned char t[]{"a/b"};
-    const std::vector<byte> p = {'t', 'h', 'i', 's'};
+//    const unsigned char t[]{"a/b"};
+//    const std::vector<byte> p = {'t', 'h', 'i', 's'};
     mi.publish("a/b", "this");
     BOOST_CHECK(mi.state() == state_t::connected);
 
