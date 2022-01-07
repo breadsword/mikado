@@ -5,75 +5,74 @@
 #include "vbi.h"
 #include "utils.h"
 
-namespace mikado {
-
-struct packet_stream
+namespace mikado
 {
-    typedef gsl::span<byte> buf_t;
-    typedef gsl::span<const byte> cbuf_t;
 
-    buf_t buf;
-    buf_t::iterator cursor;
-
-    packet_stream(const byte packet_header, buf_t _buf) :
-        buf{_buf}, cursor{buf.begin() + 2}
+    struct packet_stream
     {
-        buf[0] = packet_header;
-    }
+        typedef gsl::span<byte> buf_t;
+        typedef gsl::span<const byte> cbuf_t;
 
-    buf_t content()
+        buf_t buf;
+        buf_t::iterator cursor;
+
+        packet_stream(const byte packet_header, buf_t _buf) : buf{_buf}, cursor{buf.begin() + 2}
+        {
+            buf[0] = packet_header;
+        }
+
+        buf_t content()
+        {
+            // add remaining_length info when returning content
+            buf[1] = cursor - buf.begin() - 2;
+            return gsl::make_span(buf.begin(), cursor);
+        }
+
+        // put byte in target
+        packet_stream &operator<<(const mikado::byte value)
+        {
+            *cursor++ = value;
+            return *this;
+        }
+
+        packet_stream &operator<<(const uint16_t value)
+        {
+            *cursor++ = msb(value);
+            *cursor++ = lsb(value);
+            return *this;
+        }
+
+        packet_stream &operator<<(const cbuf_t value)
+        {
+            const auto inserted = copy(value.begin(), value.end(),
+                                       cursor, buf.end());
+            cursor += inserted;
+            return *this;
+        }
+
+        packet_stream &operator<<(const std::string &value)
+        {
+            const auto inserted = copy(value.begin(), value.end(),
+                                       cursor, buf.end());
+            cursor += inserted;
+            return *this;
+        }
+    };
+
+    gsl::span<byte> disconnect::Packet::to_span(gsl::span<byte> b)
     {
-        // add remaining_length info when returning content
-        buf[1] = cursor - buf.begin() - 2;
-        return gsl::make_span(buf.begin(), cursor);
+        packet_stream s{packet_type::disconnect, b};
+        return s.content();
     }
-
-    // put byte in target
-    packet_stream& operator<< (const mikado::byte value)
-    {
-        *cursor++ = value;
-        return *this;
-    }
-
-    packet_stream& operator<< (const uint16_t value)
-    {
-        *cursor++ = msb(value);
-        *cursor++ = lsb(value);
-        return *this;
-    }
-
-    packet_stream& operator<< (const cbuf_t value)
-    {
-        const auto inserted = copy(value.begin(), value.end(),
-                                   cursor, buf.end());
-        cursor += inserted;
-        return *this;
-    }
-
-    packet_stream& operator<< (const std::string& value)
-    {
-        const auto inserted = copy(value.begin(), value.end(),
-                                   cursor, buf.end());
-        cursor += inserted;
-        return *this;
-    }
-
-};
-
-gsl::span<byte> disconnect::Packet::to_span(gsl::span<byte> b)
-{
-    packet_stream s{packet_type::disconnect, b};
-    return s.content();
-}
 
 } // namespace mikado
-
 
 constexpr mikado::byte mikado::connect::Packet::protocol_name[];
 
 mikado::connect::Packet::Packet(const std::string _clientID, const uint16_t _keep_alive, const mikado::byte _flags) : flags{_flags},
-    keep_alive{_keep_alive}, clientID{_clientID}
-{}
+                                                                                                                      keep_alive{_keep_alive}, clientID{_clientID}
+{
+}
 
 gsl::span<mikado::byte> mikado::connect::Packet::to_span(gsl::span<mikado::byte> buffer)
 {
@@ -104,7 +103,7 @@ bool mikado::connack::Packet::from_span(gsl::span<const mikado::byte> d)
     }
     session_present = d[2] & 0x1;
 
-    if (d[3] >=0 && d[3] < 6)
+    if (d[3] >= 0 && d[3] < 6)
     {
         return_code = static_cast<result_t>(d[3]);
     }
@@ -116,12 +115,11 @@ bool mikado::connack::Packet::from_span(gsl::span<const mikado::byte> d)
     return true;
 }
 
-
 mikado::subscribe::Packet::Packet(uint16_t _packet_identifier,
                                   const std::string &_topic_filter,
-                                  mikado::byte _QoS) :
-    packet_identifier{_packet_identifier}, topic_filter{_topic_filter}, QoS{_QoS}
-{}
+                                  mikado::byte _QoS) : packet_identifier{_packet_identifier}, topic_filter{_topic_filter}, QoS{_QoS}
+{
+}
 
 gsl::span<mikado::byte> mikado::subscribe::Packet::to_span(gsl::span<mikado::byte> d)
 {
@@ -151,7 +149,7 @@ bool mikado::suback::Packet::from_span(gsl::span<const mikado::byte> d)
 
     // we may be passed any byte value, so after conversion to enum class
     // I want to make sure the value is actually a defined enum value.
-    if ((d[4] >=0 && d[4] <=2) || d[4] == 0x80)
+    if ((d[4] >= 0 && d[4] <= 2) || d[4] == 0x80)
     {
         result = static_cast<result_t>(d[4]);
     }
@@ -164,19 +162,18 @@ bool mikado::suback::Packet::from_span(gsl::span<const mikado::byte> d)
 }
 
 mikado::publish::Packet::Packet()
-{}
+{
+}
 
 mikado::publish::Packet::Packet(gsl::span<const mikado::byte> _topic,
                                 gsl::span<const mikado::byte> _payload,
-                                bool _retain) :
-    topic{_topic}, payload{_payload}, retain{_retain}
-{}
+                                bool _retain) : retain{_retain}, topic{_topic}, payload{_payload}
+{
+}
 
 gsl::span<mikado::byte> mikado::publish::Packet::to_span(gsl::span<mikado::byte> b)
 {
-    const uint8_t remaining_length = 2 + topic.size_bytes() + payload.size_bytes();
-
-    const uint8_t first_byte = (packet_type::publish | QoS<<1 | retain);
+    const uint8_t first_byte = (packet_type::publish | QoS << 1 | retain);
     packet_stream s{first_byte, b};
     s << (uint16_t)topic.size_bytes()
       << topic
@@ -198,19 +195,16 @@ bool mikado::publish::Packet::from_span(gsl::span<const mikado::byte> d)
         // packet identifier
         return false;
     }
-    uint8_t remaining_length = d[1];
 
-    uint16_t topic_length = d[2]*256 + d[3];
+    uint16_t topic_length = d[2] * 256 + d[3];
     topic = gsl::make_span(&d[4], topic_length);
     const auto payload_start = &d[4] + topic_length;
     payload = gsl::make_span(payload_start, std::end(d));
     return true;
 }
 
-
 gsl::span<mikado::byte> mikado::pingreq::Packet::to_span(gsl::span<mikado::byte> d)
 {
     packet_stream s{packet_type::pingreq, d};
     return s.content();
 }
-
